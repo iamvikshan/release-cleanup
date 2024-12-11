@@ -1,55 +1,55 @@
-import inquirer from 'inquirer';
-import { Config } from './types';
+import inquirer from 'inquirer'
+import { Config } from './types'
 
 export async function getConfig(): Promise<Config> {
   const envConfig = {
     github: {
       token: process.env.GH_TOKEN,
-      owner: process.env.GH_OWNER || process.env.GL_OWNER,
+      owner: process.env.GH_OWNER || process.env.GL_OWNER || 'iamvikshan',
       repo: process.env.GH_REPO || process.env.GL_REPO
     },
     gitlab: {
-      token: process.env.GL_TOKEN,
-      owner: process.env.GL_OWNER || process.env.GH_OWNER,
+      token: process.env.GITLAB_TOKEN,
+      owner: process.env.GL_OWNER || process.env.GH_OWNER || 'vikshan',
       repo: process.env.GL_REPO || process.env.GH_REPO
     }
-  };
+  }
 
-  const questions = [];
+  const questions = []
 
   if (!envConfig.github.token) {
     questions.push({
       type: 'password',
       name: 'githubToken',
-      message: 'Enter GitHub token:',
-    });
+      message: 'Enter GitHub token:'
+    })
   }
 
   if (!envConfig.github.owner) {
     questions.push({
       type: 'input',
       name: 'owner',
-      message: 'Enter repository owner:',
-    });
+      message: 'Enter repository owner:'
+    })
   }
 
   if (!envConfig.github.repo) {
     questions.push({
       type: 'input',
       name: 'repo',
-      message: 'Enter repository name:',
-    });
+      message: 'Enter repository name:'
+    })
   }
 
   if (!envConfig.gitlab.token) {
     questions.push({
       type: 'password',
       name: 'gitlabToken',
-      message: 'Enter GitLab token:',
-    });
+      message: 'Enter GitLab token:'
+    })
   }
 
-  const answers = await inquirer.prompt(questions);
+  const answers = await inquirer.prompt(questions)
 
   return {
     github: {
@@ -62,5 +62,5 @@ export async function getConfig(): Promise<Config> {
       owner: envConfig.gitlab.owner || answers.owner,
       repo: envConfig.gitlab.repo || answers.repo
     }
-  };
+  }
 }
