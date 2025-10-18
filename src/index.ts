@@ -3,8 +3,10 @@ import {
   createApis,
   fetchGithubItems,
   fetchGitlabItems,
+  fetchDockerImages,
   deleteGithubItems,
-  deleteGitlabItems
+  deleteGitlabItems,
+  deleteDockerImages
 } from './utils'
 import { getConfig } from './config'
 import {
@@ -12,11 +14,14 @@ import {
   GitHubTag,
   GitLabRelease,
   GitLabTag,
+  DockerImage,
   Items,
   ItemsToDelete
 } from './types'
 
-async function selectPlatforms(): Promise<Array<'github' | 'gitlab'>> {
+async function selectPlatforms(): Promise<
+  Array<'github' | 'gitlab' | 'docker'>
+> {
   const { platforms } = await inquirer.prompt([
     {
       type: 'checkbox',
@@ -24,28 +29,74 @@ async function selectPlatforms(): Promise<Array<'github' | 'gitlab'>> {
       message: 'Select platforms to cleanup (empty for all):',
       choices: [
         { name: 'GitHub', value: 'github' },
-        { name: 'GitLab', value: 'gitlab' }
+        { name: 'GitLab', value: 'gitlab' },
+        { name: 'Docker Registries', value: 'docker' }
       ]
     }
   ])
 
-  return platforms.length ? platforms : ['github', 'gitlab']
+  return platforms.length ? platforms : ['github', 'gitlab', 'docker']
 }
 
-async function selectItemTypes(): Promise<Array<'releases' | 'tags'>> {
+async function selectItemTypes(
+  platforms: Array<'github' | 'gitlab' | 'docker'>
+): Promise<Array<'releases' | 'tags' | 'docker-images'>> {
+  const choices = []
+
+  // Only show releases/tags if github or gitlab is selected
+  if (platforms.includes('github') || platforms.includes('gitlab')) {
+    choices.push(
+      { name: 'Releases', value: 'releases' },
+      { name: 'Tags', value: 'tags' }
+    )
+  }
+
+  // Only show docker images if docker is selected
+  if (platforms.includes('docker')) {
+    choices.push({ name: 'Docker Images', value: 'docker-images' })
+  }
+
   const { types } = await inquirer.prompt([
     {
       type: 'checkbox',
       name: 'types',
       message: 'Select what to delete (empty for all):',
+      choices
+    }
+  ])
+
+  // If empty, return all available types for selected platforms
+  if (!types.length) {
+    const allTypes: Array<'releases' | 'tags' | 'docker-images'> = []
+    if (platforms.includes('github') || platforms.includes('gitlab')) {
+      allTypes.push('releases', 'tags')
+    }
+    if (platforms.includes('docker')) {
+      allTypes.push('docker-images')
+    }
+    return allTypes
+  }
+
+  return types
+}
+
+async function selectDockerRegistries(): Promise<
+  Array<'ghcr' | 'gitlab' | 'dockerhub'>
+> {
+  const { registries } = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'registries',
+      message: 'Select Docker registries (empty for all):',
       choices: [
-        { name: 'Releases', value: 'releases' },
-        { name: 'Tags', value: 'tags' }
+        { name: 'GitHub Container Registry (GHCR)', value: 'ghcr' },
+        { name: 'GitLab Container Registry', value: 'gitlab' },
+        { name: 'Docker Hub', value: 'dockerhub' }
       ]
     }
   ])
 
-  return types.length ? types : ['releases', 'tags']
+  return registries.length ? registries : ['ghcr', 'gitlab', 'dockerhub']
 }
 
 async function selectItems<
@@ -71,21 +122,55 @@ async function selectItems<
   return selected.length ? selected : items
 }
 
+async function selectDockerImages(
+  images: DockerImage[],
+  registry: string
+): Promise<DockerImage[]> {
+  if (images.length === 0) {
+    return []
+  }
+
+  const choices = images.map(image => ({
+    name: `${image.name}${image.tags ? ` (tags: ${image.tags.join(', ')})` : ''}`,
+    value: image
+  }))
+
+  const { selected } = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'selected',
+      message: `Select ${registry} images to delete (empty for all):`,
+      choices
+    }
+  ])
+
+  return selected.length ? selected : images
+}
+
 async function cleanup(): Promise<void> {
   try {
     const config = await getConfig()
-    const { githubApi, gitlabApi } = createApis(config)
+    const apis = createApis(config)
 
     const platforms = await selectPlatforms()
-    const types = await selectItemTypes()
+    const types = await selectItemTypes(platforms)
+
+    // Ask which Docker registries to target if docker platform is selected
+    const dockerRegistries = platforms.includes('docker')
+      ? await selectDockerRegistries()
+      : []
 
     const items: Items = {
       github: platforms.includes('github')
-        ? await fetchGithubItems(githubApi, config)
+        ? await fetchGithubItems(apis.githubApi, config)
         : null,
       gitlab: platforms.includes('gitlab')
-        ? await fetchGitlabItems(gitlabApi, config)
-        : null
+        ? await fetchGitlabItems(apis.gitlabApi, config)
+        : null,
+      docker:
+        platforms.includes('docker') && types.includes('docker-images')
+          ? await fetchDockerImages(apis, config, dockerRegistries)
+          : null
     }
 
     const toDelete: ItemsToDelete = {
@@ -108,7 +193,24 @@ async function cleanup(): Promise<void> {
               ? await selectItems(items.gitlab.tags, 'tags')
               : []
           }
-        : null
+        : null,
+      docker:
+        items.docker && types.includes('docker-images')
+          ? {
+              ghcr: dockerRegistries.includes('ghcr')
+                ? await selectDockerImages(items.docker.ghcr, 'GHCR')
+                : [],
+              gitlab: dockerRegistries.includes('gitlab')
+                ? await selectDockerImages(
+                    items.docker.gitlab,
+                    'GitLab Registry'
+                  )
+                : [],
+              dockerHub: dockerRegistries.includes('dockerhub')
+                ? await selectDockerImages(items.docker.dockerHub, 'Docker Hub')
+                : []
+            }
+          : null
     }
 
     const { confirm } = await inquirer.prompt([
@@ -130,15 +232,22 @@ async function cleanup(): Promise<void> {
     const operations: Promise<void>[] = []
     if (toDelete.github) {
       operations.push(
-        deleteGithubItems(githubApi, config, toDelete.github).catch(error =>
-          console.error('GitHub Error:', error.message)
+        deleteGithubItems(apis.githubApi, config, toDelete.github).catch(
+          error => console.error('GitHub Error:', error.message)
         )
       )
     }
     if (toDelete.gitlab) {
       operations.push(
-        deleteGitlabItems(gitlabApi, config, toDelete.gitlab).catch(error =>
-          console.error('GitLab Error:', error.message)
+        deleteGitlabItems(apis.gitlabApi, config, toDelete.gitlab).catch(
+          error => console.error('GitLab Error:', error.message)
+        )
+      )
+    }
+    if (toDelete.docker) {
+      operations.push(
+        deleteDockerImages(apis, config, toDelete.docker).catch(error =>
+          console.error('Docker Error:', error.message)
         )
       )
     }

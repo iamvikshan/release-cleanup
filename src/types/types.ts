@@ -11,11 +11,24 @@ export interface Config {
     owner: string
     repo: string
   }
+  docker: {
+    ghcrToken?: string
+    ghcrOwner?: string
+    ghcrPackage?: string
+    gitlabToken?: string
+    gitlabProject?: string
+    dockerHubToken?: string
+    dockerHubUsername?: string
+    dockerHubRepository?: string
+  }
 }
 
 export interface APIs {
   githubApi: AxiosInstance
   gitlabApi: AxiosInstance
+  ghcrApi?: AxiosInstance
+  gitlabRegistryApi?: AxiosInstance
+  dockerHubApi?: AxiosInstance
 }
 
 export interface GitHubRelease {
@@ -37,6 +50,14 @@ export interface GitLabTag {
   name: string
 }
 
+export interface DockerImage {
+  id?: number | string
+  name: string
+  tags?: string[]
+  digest?: string
+  created_at?: string
+}
+
 export interface Items {
   github: {
     releases: GitHubRelease[]
@@ -45,6 +66,11 @@ export interface Items {
   gitlab: {
     releases: GitLabRelease[]
     tags: GitLabTag[]
+  } | null
+  docker: {
+    ghcr: DockerImage[]
+    gitlab: DockerImage[]
+    dockerHub: DockerImage[]
   } | null
 }
 
@@ -56,5 +82,10 @@ export interface ItemsToDelete {
   gitlab: {
     releases: GitLabRelease[]
     tags: GitLabTag[]
+  } | null
+  docker: {
+    ghcr: DockerImage[]
+    gitlab: DockerImage[]
+    dockerHub: DockerImage[]
   } | null
 }

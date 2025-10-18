@@ -12,6 +12,16 @@ export async function getConfig(): Promise<Config> {
       token: process.env.GITLAB_TOKEN,
       owner: process.env.GL_OWNER || process.env.GH_OWNER || 'vikshan',
       repo: process.env.GL_REPO || process.env.GH_REPO
+    },
+    docker: {
+      ghcrToken: process.env.GHCR_TOKEN || process.env.GH_TOKEN,
+      ghcrOwner: process.env.GHCR_OWNER || process.env.GH_OWNER || 'iamvikshan',
+      ghcrPackage: process.env.GHCR_PACKAGE,
+      gitlabToken: process.env.GITLAB_TOKEN,
+      gitlabProject: process.env.GL_PROJECT,
+      dockerHubToken: process.env.DOCKERHUB_TOKEN,
+      dockerHubUsername: process.env.DOCKER_HUB_USERNAME || 'vikshan',
+      dockerHubRepository: process.env.DOCKER_HUB_REPO
     }
   }
 
@@ -61,6 +71,7 @@ export async function getConfig(): Promise<Config> {
       token: envConfig.gitlab.token || answers.gitlabToken,
       owner: envConfig.gitlab.owner || answers.owner,
       repo: envConfig.gitlab.repo || answers.repo
-    }
+    },
+    docker: envConfig.docker
   }
 }
