@@ -1,32 +1,10 @@
 import axios from 'axios'
-import {
-  Config,
-  APIs,
-  GitHubRelease,
-  GitHubTag,
-  GitLabRelease,
-  GitLabTag,
-  DockerImage
-} from './types'
+import { Config, APIs, DockerImage } from '../types'
 
-export function createApis(config: Config): APIs {
-  const githubApi = axios.create({
-    baseURL: 'https://api.github.com',
-    headers: {
-      Authorization: `token ${config.github.token}`,
-      Accept: 'application/vnd.github.v3+json'
-    }
-  })
-
-  const gitlabApi = axios.create({
-    baseURL: 'https://gitlab.com/api/v4',
-    headers: {
-      'PRIVATE-TOKEN': config.gitlab.token
-    }
-  })
-
-  const apis: APIs = { githubApi, gitlabApi }
-
+/**
+ * Create Docker registry API clients
+ */
+export function createDockerApis(config: Config, apis: APIs): APIs {
   // GHCR API (uses GitHub token)
   if (config.docker.ghcrToken) {
     apis.ghcrApi = axios.create({
@@ -48,7 +26,7 @@ export function createApis(config: Config): APIs {
     })
   }
 
-  // Docker Hub API (authentication handled in fetchDockerImages)
+  // Docker Hub API
   if (config.docker.dockerHubToken) {
     apis.dockerHubApi = axios.create({
       baseURL: 'https://hub.docker.com/v2'
@@ -58,85 +36,9 @@ export function createApis(config: Config): APIs {
   return apis
 }
 
-export async function fetchGithubItems(
-  githubApi: APIs['githubApi'],
-  config: Config
-) {
-  const { owner, repo } = config.github
-
-  const [releases, tags] = await Promise.all([
-    githubApi
-      .get<GitHubRelease[]>(`/repos/${owner}/${repo}/releases`)
-      .then(res => res.data),
-    githubApi
-      .get<GitHubTag[]>(`/repos/${owner}/${repo}/tags`)
-      .then(res => res.data)
-  ])
-
-  return { releases, tags }
-}
-
-export async function fetchGitlabItems(
-  gitlabApi: APIs['gitlabApi'],
-  config: Config
-) {
-  const projectId = encodeURIComponent(
-    `${config.gitlab.owner}/${config.gitlab.repo}`
-  )
-
-  const [releases, tags] = await Promise.all([
-    gitlabApi
-      .get<GitLabRelease[]>(`/projects/${projectId}/releases`)
-      .then(res => res.data),
-    gitlabApi
-      .get<GitLabTag[]>(`/projects/${projectId}/repository/tags`)
-      .then(res => res.data)
-  ])
-
-  return { releases, tags }
-}
-
-export async function deleteGithubItems(
-  githubApi: APIs['githubApi'],
-  config: Config,
-  items: { releases?: GitHubRelease[]; tags?: GitHubTag[] }
-) {
-  const { owner, repo } = config.github
-
-  for (const release of items.releases || []) {
-    await githubApi.delete(`/repos/${owner}/${repo}/releases/${release.id}`)
-    console.log(`Deleted GitHub release: ${release.tag_name}`)
-  }
-
-  for (const tag of items.tags || []) {
-    await githubApi.delete(`/repos/${owner}/${repo}/git/refs/tags/${tag.name}`)
-    console.log(`Deleted GitHub tag: ${tag.name}`)
-  }
-}
-
-export async function deleteGitlabItems(
-  gitlabApi: APIs['gitlabApi'],
-  config: Config,
-  items: { releases?: GitLabRelease[]; tags?: GitLabTag[] }
-) {
-  const projectId = encodeURIComponent(
-    `${config.gitlab.owner}/${config.gitlab.repo}`
-  )
-
-  for (const release of items.releases || []) {
-    await gitlabApi.delete(
-      `/projects/${projectId}/releases/${release.tag_name}`
-    )
-    console.log(`Deleted GitLab release: ${release.tag_name}`)
-  }
-
-  for (const tag of items.tags || []) {
-    await gitlabApi.delete(`/projects/${projectId}/repository/tags/${tag.name}`)
-    console.log(`Deleted GitLab tag: ${tag.name}`)
-  }
-}
-
-// Docker Image Functions
+/**
+ * Fetch container images from multiple registries
+ */
 export async function fetchDockerImages(
   apis: APIs,
   config: Config,
@@ -146,7 +48,6 @@ export async function fetchDockerImages(
   gitlab: DockerImage[]
   dockerHub: DockerImage[]
 }> {
-  // Default to all registries if not specified
   const targetRegistries = registries || ['ghcr', 'gitlab', 'dockerhub']
 
   const results = {
@@ -162,15 +63,12 @@ export async function fetchDockerImages(
     config.docker.ghcrOwner
   ) {
     try {
-      // List all container packages for the user
       const response = await apis.ghcrApi.get(
         `/users/${config.docker.ghcrOwner}/packages?package_type=container&per_page=100`
       )
 
-      // Flatten all packages and their versions
       const packages: DockerImage[] = []
       for (const pkg of response.data) {
-        // Get versions for each package
         try {
           const versionsResponse = await apis.ghcrApi.get(
             `/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(pkg.name)}/versions`
@@ -185,7 +83,7 @@ export async function fetchDockerImages(
           })
         } catch (err) {
           console.error(
-            `Error fetching versions for ${pkg.name}:`,
+            `⚠️  Error fetching versions for ${pkg.name}:`,
             err instanceof Error ? err.message : String(err)
           )
         }
@@ -193,7 +91,7 @@ export async function fetchDockerImages(
       results.ghcr = packages
     } catch (error) {
       console.error(
-        'Error fetching GHCR images:',
+        '⚠️  Error fetching GHCR images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -217,7 +115,7 @@ export async function fetchDockerImages(
       }))
     } catch (error) {
       console.error(
-        'Error fetching GitLab images:',
+        '⚠️  Error fetching GitLab images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -231,7 +129,6 @@ export async function fetchDockerImages(
     config.docker.dockerHubToken
   ) {
     try {
-      // First, authenticate to get JWT token
       const authResponse = await axios.post(
         'https://hub.docker.com/v2/users/login',
         {
@@ -240,24 +137,21 @@ export async function fetchDockerImages(
         }
       )
 
-      // Update API instance with JWT token
       apis.dockerHubApi.defaults.headers.Authorization = `Bearer ${authResponse.data.token}`
 
-      // Fetch all repositories for the user
       const reposResponse = await apis.dockerHubApi.get(
         `/repositories/${config.docker.dockerHubUsername}/`
       )
 
-      // Map repositories to DockerImage format
       results.dockerHub = reposResponse.data.results.map((repo: any) => ({
         name: repo.name,
         id: `${repo.namespace}/${repo.name}`,
         created_at: repo.last_updated,
-        tags: [] // Tags will be fetched on demand if needed
+        tags: []
       }))
     } catch (error) {
       console.error(
-        'Error fetching Docker Hub images:',
+        '⚠️  Error fetching Docker Hub images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -266,48 +160,146 @@ export async function fetchDockerImages(
   return results
 }
 
+/**
+ * Fetch versions for a specific Docker image
+ */
+export async function fetchDockerImageVersions(
+  apis: APIs,
+  config: Config,
+  registry: 'ghcr' | 'gitlab' | 'dockerhub',
+  image: any
+): Promise<any[]> {
+  try {
+    if (registry === 'ghcr' && apis.ghcrApi && config.docker.ghcrOwner) {
+      const response = await apis.ghcrApi.get(
+        `/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(image.name)}/versions`
+      )
+
+      return response.data.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        tags: v.metadata?.container?.tags || [],
+        digest: v.name,
+        created_at: v.created_at,
+        package_name: image.name
+      }))
+    }
+
+    if (
+      registry === 'gitlab' &&
+      apis.gitlabRegistryApi &&
+      config.docker.gitlabProject
+    ) {
+      const projectId = encodeURIComponent(config.docker.gitlabProject)
+      const response = await apis.gitlabRegistryApi.get(
+        `/projects/${projectId}/registry/repositories/${image.id}/tags`
+      )
+
+      return response.data.map((tag: any) => ({
+        id: tag.name,
+        name: tag.name,
+        tags: [tag.name],
+        digest: tag.digest,
+        created_at: tag.created_at,
+        size: tag.total_size,
+        package_name: image.name
+      }))
+    }
+
+    if (
+      registry === 'dockerhub' &&
+      apis.dockerHubApi &&
+      config.docker.dockerHubUsername
+    ) {
+      const response = await apis.dockerHubApi.get(
+        `/repositories/${config.docker.dockerHubUsername}/${image.name}/tags?page_size=100`
+      )
+
+      return response.data.results.map((tag: any) => ({
+        id: tag.id,
+        name: tag.name,
+        tags: [tag.name],
+        digest: tag.digest,
+        created_at: tag.last_updated,
+        size: tag.full_size,
+        package_name: image.name
+      }))
+    }
+  } catch (error) {
+    console.error(
+      `⚠️  Error fetching versions for ${image.name}:`,
+      error instanceof Error ? error.message : String(error)
+    )
+  }
+
+  return []
+}
+
+/**
+ * Delete Docker image versions across registries
+ */
 export async function deleteDockerImages(
   apis: APIs,
   config: Config,
   items: {
-    ghcr?: DockerImage[]
-    gitlab?: DockerImage[]
-    dockerHub?: DockerImage[]
+    ghcr?: any[]
+    gitlab?: any[]
+    dockerHub?: any[]
   }
 ) {
-  // Delete GHCR images
-  if (apis.ghcrApi && items.ghcr) {
-    for (const image of items.ghcr) {
+  // Delete GHCR image versions
+  if (apis.ghcrApi && items.ghcr && config.docker.ghcrOwner) {
+    for (const version of items.ghcr) {
       try {
-        await apis.ghcrApi.delete(`/user/packages/container/${image.name}`)
-        console.log(`Deleted GHCR image: ${image.name}`)
+        await apis.ghcrApi.delete(
+          `/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(version.package_name)}/versions/${version.id}`
+        )
+        const tagInfo =
+          version.tags && version.tags.length > 0
+            ? ` (${version.tags.join(', ')})`
+            : ''
+        console.log(
+          `✅ Deleted GHCR version: ${version.package_name}${tagInfo}`
+        )
       } catch (error) {
         console.error(
-          `Error deleting GHCR image ${image.name}:`,
+          `❌ Error deleting GHCR version ${version.package_name}:`,
           error instanceof Error ? error.message : String(error)
         )
       }
     }
   }
 
-  // Delete GitLab Registry images
+  // Delete GitLab Registry image tags
   if (apis.gitlabRegistryApi && items.gitlab && config.docker.gitlabProject) {
-    for (const image of items.gitlab) {
+    for (const version of items.gitlab) {
       try {
-        await apis.gitlabRegistryApi.delete(
-          `/projects/${encodeURIComponent(`${config.gitlab.owner}/${config.docker.gitlabProject}`)}/registry/repositories/${image.id}`
+        const projectId = encodeURIComponent(config.docker.gitlabProject)
+        const reposResponse = await apis.gitlabRegistryApi.get(
+          `/projects/${projectId}/registry/repositories`
         )
-        console.log(`Deleted GitLab Registry image: ${image.name}`)
+        const repo = reposResponse.data.find(
+          (r: any) => (r.path || r.name) === version.package_name
+        )
+
+        if (repo) {
+          await apis.gitlabRegistryApi.delete(
+            `/projects/${projectId}/registry/repositories/${repo.id}/tags/${version.name}`
+          )
+          console.log(
+            `✅ Deleted GitLab Registry tag: ${version.package_name}:${version.name}`
+          )
+        }
       } catch (error) {
         console.error(
-          `Error deleting GitLab image ${image.name}:`,
+          `❌ Error deleting GitLab tag ${version.package_name}:${version.name}:`,
           error instanceof Error ? error.message : String(error)
         )
       }
     }
   }
 
-  // Delete Docker Hub images
+  // Delete Docker Hub image tags
   if (
     apis.dockerHubApi &&
     items.dockerHub &&
@@ -315,7 +307,6 @@ export async function deleteDockerImages(
     config.docker.dockerHubToken
   ) {
     try {
-      // Authenticate first
       const authResponse = await axios.post(
         'https://hub.docker.com/v2/users/login',
         {
@@ -326,23 +317,24 @@ export async function deleteDockerImages(
 
       apis.dockerHubApi.defaults.headers.Authorization = `Bearer ${authResponse.data.token}`
 
-      // Delete repositories
-      for (const image of items.dockerHub) {
+      for (const version of items.dockerHub) {
         try {
           await apis.dockerHubApi.delete(
-            `/repositories/${config.docker.dockerHubUsername}/${image.name}/`
+            `/repositories/${config.docker.dockerHubUsername}/${version.package_name}/tags/${version.name}/`
           )
-          console.log(`Deleted Docker Hub repository: ${image.name}`)
+          console.log(
+            `✅ Deleted Docker Hub tag: ${version.package_name}:${version.name}`
+          )
         } catch (error) {
           console.error(
-            `Error deleting Docker Hub repository ${image.name}:`,
+            `❌ Error deleting Docker Hub tag ${version.package_name}:${version.name}:`,
             error instanceof Error ? error.message : String(error)
           )
         }
       }
     } catch (error) {
       console.error(
-        'Error authenticating with Docker Hub:',
+        '❌ Error authenticating with Docker Hub:',
         error instanceof Error ? error.message : String(error)
       )
     }

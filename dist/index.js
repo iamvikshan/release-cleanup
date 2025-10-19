@@ -35423,7 +35423,7 @@ Object.defineProperty(module, 'exports', {
 
 /***/ }),
 
-/***/ 22973:
+/***/ 83282:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -35432,310 +35432,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getConfig = getConfig;
-const inquirer_1 = __importDefault(__nccwpck_require__(2432));
-async function getConfig() {
-    const envConfig = {
-        github: {
-            token: process.env.GH_TOKEN,
-            owner: process.env.GH_OWNER || process.env.GL_OWNER || 'iamvikshan',
-            repo: process.env.GH_REPO || process.env.GL_REPO
-        },
-        gitlab: {
-            token: process.env.GITLAB_TOKEN,
-            owner: process.env.GL_OWNER || process.env.GH_OWNER || 'vikshan',
-            repo: process.env.GL_REPO || process.env.GH_REPO
-        },
-        docker: {
-            ghcrToken: process.env.GHCR_TOKEN || process.env.GH_TOKEN,
-            ghcrOwner: process.env.GHCR_OWNER || process.env.GH_OWNER || 'iamvikshan',
-            ghcrPackage: process.env.GHCR_PACKAGE,
-            gitlabToken: process.env.GITLAB_TOKEN,
-            gitlabProject: process.env.GL_PROJECT,
-            dockerHubToken: process.env.DOCKERHUB_TOKEN,
-            dockerHubUsername: process.env.DOCKER_HUB_USERNAME || 'vikshan',
-            dockerHubRepository: process.env.DOCKER_HUB_REPO
-        }
-    };
-    const questions = [];
-    if (!envConfig.github.token) {
-        questions.push({
-            type: 'password',
-            name: 'githubToken',
-            message: 'Enter GitHub token:'
-        });
-    }
-    if (!envConfig.github.owner) {
-        questions.push({
-            type: 'input',
-            name: 'owner',
-            message: 'Enter repository owner:'
-        });
-    }
-    if (!envConfig.github.repo) {
-        questions.push({
-            type: 'input',
-            name: 'repo',
-            message: 'Enter repository name:'
-        });
-    }
-    if (!envConfig.gitlab.token) {
-        questions.push({
-            type: 'password',
-            name: 'gitlabToken',
-            message: 'Enter GitLab token:'
-        });
-    }
-    const answers = await inquirer_1.default.prompt(questions);
-    return {
-        github: {
-            token: envConfig.github.token || answers.githubToken,
-            owner: envConfig.github.owner || answers.owner,
-            repo: envConfig.github.repo || answers.repo
-        },
-        gitlab: {
-            token: envConfig.gitlab.token || answers.gitlabToken,
-            owner: envConfig.gitlab.owner || answers.owner,
-            repo: envConfig.gitlab.repo || answers.repo
-        },
-        docker: envConfig.docker
-    };
-}
-
-
-/***/ }),
-
-/***/ 79407:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const inquirer_1 = __importDefault(__nccwpck_require__(2432));
-const utils_1 = __nccwpck_require__(71798);
-const config_1 = __nccwpck_require__(22973);
-async function selectPlatforms() {
-    const { platforms } = await inquirer_1.default.prompt([
-        {
-            type: 'checkbox',
-            name: 'platforms',
-            message: 'Select platforms to cleanup (empty for all):',
-            choices: [
-                { name: 'GitHub', value: 'github' },
-                { name: 'GitLab', value: 'gitlab' },
-                { name: 'Docker Registries', value: 'docker' }
-            ]
-        }
-    ]);
-    return platforms.length ? platforms : ['github', 'gitlab', 'docker'];
-}
-async function selectItemTypes(platforms) {
-    const choices = [];
-    // Only show releases/tags if github or gitlab is selected
-    if (platforms.includes('github') || platforms.includes('gitlab')) {
-        choices.push({ name: 'Releases', value: 'releases' }, { name: 'Tags', value: 'tags' });
-    }
-    // Only show docker images if docker is selected
-    if (platforms.includes('docker')) {
-        choices.push({ name: 'Docker Images', value: 'docker-images' });
-    }
-    const { types } = await inquirer_1.default.prompt([
-        {
-            type: 'checkbox',
-            name: 'types',
-            message: 'Select what to delete (empty for all):',
-            choices
-        }
-    ]);
-    // If empty, return all available types for selected platforms
-    if (!types.length) {
-        const allTypes = [];
-        if (platforms.includes('github') || platforms.includes('gitlab')) {
-            allTypes.push('releases', 'tags');
-        }
-        if (platforms.includes('docker')) {
-            allTypes.push('docker-images');
-        }
-        return allTypes;
-    }
-    return types;
-}
-async function selectDockerRegistries() {
-    const { registries } = await inquirer_1.default.prompt([
-        {
-            type: 'checkbox',
-            name: 'registries',
-            message: 'Select Docker registries (empty for all):',
-            choices: [
-                { name: 'GitHub Container Registry (GHCR)', value: 'ghcr' },
-                { name: 'GitLab Container Registry', value: 'gitlab' },
-                { name: 'Docker Hub', value: 'dockerhub' }
-            ]
-        }
-    ]);
-    return registries.length ? registries : ['ghcr', 'gitlab', 'dockerhub'];
-}
-async function selectItems(items, type) {
-    const choices = items.map(item => ({
-        name: type === 'releases'
-            ? `${item.tag_name} - ${item.name || 'No title'}`
-            : item.name,
-        value: item
-    }));
-    const { selected } = await inquirer_1.default.prompt([
-        {
-            type: 'checkbox',
-            name: 'selected',
-            message: `Select ${type} to delete (empty for all):`,
-            choices
-        }
-    ]);
-    return selected.length ? selected : items;
-}
-async function selectDockerImages(images, registry) {
-    if (images.length === 0) {
-        return [];
-    }
-    const choices = images.map(image => ({
-        name: `${image.name}${image.tags ? ` (tags: ${image.tags.join(', ')})` : ''}`,
-        value: image
-    }));
-    const { selected } = await inquirer_1.default.prompt([
-        {
-            type: 'checkbox',
-            name: 'selected',
-            message: `Select ${registry} images to delete (empty for all):`,
-            choices
-        }
-    ]);
-    return selected.length ? selected : images;
-}
-async function cleanup() {
-    try {
-        const config = await (0, config_1.getConfig)();
-        const apis = (0, utils_1.createApis)(config);
-        const platforms = await selectPlatforms();
-        const types = await selectItemTypes(platforms);
-        // Ask which Docker registries to target if docker platform is selected
-        const dockerRegistries = platforms.includes('docker')
-            ? await selectDockerRegistries()
-            : [];
-        const items = {
-            github: platforms.includes('github')
-                ? await (0, utils_1.fetchGithubItems)(apis.githubApi, config)
-                : null,
-            gitlab: platforms.includes('gitlab')
-                ? await (0, utils_1.fetchGitlabItems)(apis.gitlabApi, config)
-                : null,
-            docker: platforms.includes('docker') && types.includes('docker-images')
-                ? await (0, utils_1.fetchDockerImages)(apis, config, dockerRegistries)
-                : null
-        };
-        const toDelete = {
-            github: items.github
-                ? {
-                    releases: types.includes('releases')
-                        ? await selectItems(items.github.releases, 'releases')
-                        : [],
-                    tags: types.includes('tags')
-                        ? await selectItems(items.github.tags, 'tags')
-                        : []
-                }
-                : null,
-            gitlab: items.gitlab
-                ? {
-                    releases: types.includes('releases')
-                        ? await selectItems(items.gitlab.releases, 'releases')
-                        : [],
-                    tags: types.includes('tags')
-                        ? await selectItems(items.gitlab.tags, 'tags')
-                        : []
-                }
-                : null,
-            docker: items.docker && types.includes('docker-images')
-                ? {
-                    ghcr: dockerRegistries.includes('ghcr')
-                        ? await selectDockerImages(items.docker.ghcr, 'GHCR')
-                        : [],
-                    gitlab: dockerRegistries.includes('gitlab')
-                        ? await selectDockerImages(items.docker.gitlab, 'GitLab Registry')
-                        : [],
-                    dockerHub: dockerRegistries.includes('dockerhub')
-                        ? await selectDockerImages(items.docker.dockerHub, 'Docker Hub')
-                        : []
-                }
-                : null
-        };
-        const { confirm } = await inquirer_1.default.prompt([
-            {
-                type: 'confirm',
-                name: 'confirm',
-                message: 'Are you sure you want to delete the selected items?',
-                default: false
-            }
-        ]);
-        if (!confirm) {
-            console.log('Operation cancelled');
-            return;
-        }
-        console.log('Starting cleanup...');
-        const operations = [];
-        if (toDelete.github) {
-            operations.push((0, utils_1.deleteGithubItems)(apis.githubApi, config, toDelete.github).catch(error => console.error('GitHub Error:', error.message)));
-        }
-        if (toDelete.gitlab) {
-            operations.push((0, utils_1.deleteGitlabItems)(apis.gitlabApi, config, toDelete.gitlab).catch(error => console.error('GitLab Error:', error.message)));
-        }
-        if (toDelete.docker) {
-            operations.push((0, utils_1.deleteDockerImages)(apis, config, toDelete.docker).catch(error => console.error('Docker Error:', error.message)));
-        }
-        await Promise.all(operations);
-        console.log('Cleanup completed!');
-    }
-    catch (error) {
-        console.error('Error:', error instanceof Error ? error.message : String(error));
-    }
-}
-cleanup().catch(console.error);
-
-
-/***/ }),
-
-/***/ 71798:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createApis = createApis;
-exports.fetchGithubItems = fetchGithubItems;
-exports.fetchGitlabItems = fetchGitlabItems;
-exports.deleteGithubItems = deleteGithubItems;
-exports.deleteGitlabItems = deleteGitlabItems;
+exports.createDockerApis = createDockerApis;
 exports.fetchDockerImages = fetchDockerImages;
+exports.fetchDockerImageVersions = fetchDockerImageVersions;
 exports.deleteDockerImages = deleteDockerImages;
 const axios_1 = __importDefault(__nccwpck_require__(87269));
-function createApis(config) {
-    const githubApi = axios_1.default.create({
-        baseURL: 'https://api.github.com',
-        headers: {
-            Authorization: `token ${config.github.token}`,
-            Accept: 'application/vnd.github.v3+json'
-        }
-    });
-    const gitlabApi = axios_1.default.create({
-        baseURL: 'https://gitlab.com/api/v4',
-        headers: {
-            'PRIVATE-TOKEN': config.gitlab.token
-        }
-    });
-    const apis = { githubApi, gitlabApi };
+/**
+ * Create Docker registry API clients
+ */
+function createDockerApis(config, apis) {
     // GHCR API (uses GitHub token)
     if (config.docker.ghcrToken) {
         apis.ghcrApi = axios_1.default.create({
@@ -35755,7 +35460,7 @@ function createApis(config) {
             }
         });
     }
-    // Docker Hub API (authentication handled in fetchDockerImages)
+    // Docker Hub API
     if (config.docker.dockerHubToken) {
         apis.dockerHubApi = axios_1.default.create({
             baseURL: 'https://hub.docker.com/v2'
@@ -35763,55 +35468,10 @@ function createApis(config) {
     }
     return apis;
 }
-async function fetchGithubItems(githubApi, config) {
-    const { owner, repo } = config.github;
-    const [releases, tags] = await Promise.all([
-        githubApi
-            .get(`/repos/${owner}/${repo}/releases`)
-            .then(res => res.data),
-        githubApi
-            .get(`/repos/${owner}/${repo}/tags`)
-            .then(res => res.data)
-    ]);
-    return { releases, tags };
-}
-async function fetchGitlabItems(gitlabApi, config) {
-    const projectId = encodeURIComponent(`${config.gitlab.owner}/${config.gitlab.repo}`);
-    const [releases, tags] = await Promise.all([
-        gitlabApi
-            .get(`/projects/${projectId}/releases`)
-            .then(res => res.data),
-        gitlabApi
-            .get(`/projects/${projectId}/repository/tags`)
-            .then(res => res.data)
-    ]);
-    return { releases, tags };
-}
-async function deleteGithubItems(githubApi, config, items) {
-    const { owner, repo } = config.github;
-    for (const release of items.releases || []) {
-        await githubApi.delete(`/repos/${owner}/${repo}/releases/${release.id}`);
-        console.log(`Deleted GitHub release: ${release.tag_name}`);
-    }
-    for (const tag of items.tags || []) {
-        await githubApi.delete(`/repos/${owner}/${repo}/git/refs/tags/${tag.name}`);
-        console.log(`Deleted GitHub tag: ${tag.name}`);
-    }
-}
-async function deleteGitlabItems(gitlabApi, config, items) {
-    const projectId = encodeURIComponent(`${config.gitlab.owner}/${config.gitlab.repo}`);
-    for (const release of items.releases || []) {
-        await gitlabApi.delete(`/projects/${projectId}/releases/${release.tag_name}`);
-        console.log(`Deleted GitLab release: ${release.tag_name}`);
-    }
-    for (const tag of items.tags || []) {
-        await gitlabApi.delete(`/projects/${projectId}/repository/tags/${tag.name}`);
-        console.log(`Deleted GitLab tag: ${tag.name}`);
-    }
-}
-// Docker Image Functions
+/**
+ * Fetch container images from multiple registries
+ */
 async function fetchDockerImages(apis, config, registries) {
-    // Default to all registries if not specified
     const targetRegistries = registries || ['ghcr', 'gitlab', 'dockerhub'];
     const results = {
         ghcr: [],
@@ -35823,12 +35483,9 @@ async function fetchDockerImages(apis, config, registries) {
         apis.ghcrApi &&
         config.docker.ghcrOwner) {
         try {
-            // List all container packages for the user
             const response = await apis.ghcrApi.get(`/users/${config.docker.ghcrOwner}/packages?package_type=container&per_page=100`);
-            // Flatten all packages and their versions
             const packages = [];
             for (const pkg of response.data) {
-                // Get versions for each package
                 try {
                     const versionsResponse = await apis.ghcrApi.get(`/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(pkg.name)}/versions`);
                     packages.push({
@@ -35841,13 +35498,13 @@ async function fetchDockerImages(apis, config, registries) {
                     });
                 }
                 catch (err) {
-                    console.error(`Error fetching versions for ${pkg.name}:`, err instanceof Error ? err.message : String(err));
+                    console.error(`⚠️  Error fetching versions for ${pkg.name}:`, err instanceof Error ? err.message : String(err));
                 }
             }
             results.ghcr = packages;
         }
         catch (error) {
-            console.error('Error fetching GHCR images:', error instanceof Error ? error.message : String(error));
+            console.error('⚠️  Error fetching GHCR images:', error instanceof Error ? error.message : String(error));
         }
     }
     // Fetch GitLab Registry images
@@ -35864,7 +35521,7 @@ async function fetchDockerImages(apis, config, registries) {
             }));
         }
         catch (error) {
-            console.error('Error fetching GitLab images:', error instanceof Error ? error.message : String(error));
+            console.error('⚠️  Error fetching GitLab images:', error instanceof Error ? error.message : String(error));
         }
     }
     // Fetch Docker Hub images
@@ -35873,81 +35530,1288 @@ async function fetchDockerImages(apis, config, registries) {
         config.docker.dockerHubUsername &&
         config.docker.dockerHubToken) {
         try {
-            // First, authenticate to get JWT token
             const authResponse = await axios_1.default.post('https://hub.docker.com/v2/users/login', {
                 username: config.docker.dockerHubUsername,
                 password: config.docker.dockerHubToken
             });
-            // Update API instance with JWT token
             apis.dockerHubApi.defaults.headers.Authorization = `Bearer ${authResponse.data.token}`;
-            // Fetch all repositories for the user
             const reposResponse = await apis.dockerHubApi.get(`/repositories/${config.docker.dockerHubUsername}/`);
-            // Map repositories to DockerImage format
             results.dockerHub = reposResponse.data.results.map((repo) => ({
                 name: repo.name,
                 id: `${repo.namespace}/${repo.name}`,
                 created_at: repo.last_updated,
-                tags: [] // Tags will be fetched on demand if needed
+                tags: []
             }));
         }
         catch (error) {
-            console.error('Error fetching Docker Hub images:', error instanceof Error ? error.message : String(error));
+            console.error('⚠️  Error fetching Docker Hub images:', error instanceof Error ? error.message : String(error));
         }
     }
     return results;
 }
+/**
+ * Fetch versions for a specific Docker image
+ */
+async function fetchDockerImageVersions(apis, config, registry, image) {
+    try {
+        if (registry === 'ghcr' && apis.ghcrApi && config.docker.ghcrOwner) {
+            const response = await apis.ghcrApi.get(`/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(image.name)}/versions`);
+            return response.data.map((v) => ({
+                id: v.id,
+                name: v.name,
+                tags: v.metadata?.container?.tags || [],
+                digest: v.name,
+                created_at: v.created_at,
+                package_name: image.name
+            }));
+        }
+        if (registry === 'gitlab' &&
+            apis.gitlabRegistryApi &&
+            config.docker.gitlabProject) {
+            const projectId = encodeURIComponent(config.docker.gitlabProject);
+            const response = await apis.gitlabRegistryApi.get(`/projects/${projectId}/registry/repositories/${image.id}/tags`);
+            return response.data.map((tag) => ({
+                id: tag.name,
+                name: tag.name,
+                tags: [tag.name],
+                digest: tag.digest,
+                created_at: tag.created_at,
+                size: tag.total_size,
+                package_name: image.name
+            }));
+        }
+        if (registry === 'dockerhub' &&
+            apis.dockerHubApi &&
+            config.docker.dockerHubUsername) {
+            const response = await apis.dockerHubApi.get(`/repositories/${config.docker.dockerHubUsername}/${image.name}/tags?page_size=100`);
+            return response.data.results.map((tag) => ({
+                id: tag.id,
+                name: tag.name,
+                tags: [tag.name],
+                digest: tag.digest,
+                created_at: tag.last_updated,
+                size: tag.full_size,
+                package_name: image.name
+            }));
+        }
+    }
+    catch (error) {
+        console.error(`⚠️  Error fetching versions for ${image.name}:`, error instanceof Error ? error.message : String(error));
+    }
+    return [];
+}
+/**
+ * Delete Docker image versions across registries
+ */
 async function deleteDockerImages(apis, config, items) {
-    // Delete GHCR images
-    if (apis.ghcrApi && items.ghcr) {
-        for (const image of items.ghcr) {
+    // Delete GHCR image versions
+    if (apis.ghcrApi && items.ghcr && config.docker.ghcrOwner) {
+        for (const version of items.ghcr) {
             try {
-                await apis.ghcrApi.delete(`/user/packages/container/${image.name}`);
-                console.log(`Deleted GHCR image: ${image.name}`);
+                await apis.ghcrApi.delete(`/users/${config.docker.ghcrOwner}/packages/container/${encodeURIComponent(version.package_name)}/versions/${version.id}`);
+                const tagInfo = version.tags && version.tags.length > 0
+                    ? ` (${version.tags.join(', ')})`
+                    : '';
+                console.log(`✅ Deleted GHCR version: ${version.package_name}${tagInfo}`);
             }
             catch (error) {
-                console.error(`Error deleting GHCR image ${image.name}:`, error instanceof Error ? error.message : String(error));
+                console.error(`❌ Error deleting GHCR version ${version.package_name}:`, error instanceof Error ? error.message : String(error));
             }
         }
     }
-    // Delete GitLab Registry images
+    // Delete GitLab Registry image tags
     if (apis.gitlabRegistryApi && items.gitlab && config.docker.gitlabProject) {
-        for (const image of items.gitlab) {
+        for (const version of items.gitlab) {
             try {
-                await apis.gitlabRegistryApi.delete(`/projects/${encodeURIComponent(`${config.gitlab.owner}/${config.docker.gitlabProject}`)}/registry/repositories/${image.id}`);
-                console.log(`Deleted GitLab Registry image: ${image.name}`);
+                const projectId = encodeURIComponent(config.docker.gitlabProject);
+                const reposResponse = await apis.gitlabRegistryApi.get(`/projects/${projectId}/registry/repositories`);
+                const repo = reposResponse.data.find((r) => (r.path || r.name) === version.package_name);
+                if (repo) {
+                    await apis.gitlabRegistryApi.delete(`/projects/${projectId}/registry/repositories/${repo.id}/tags/${version.name}`);
+                    console.log(`✅ Deleted GitLab Registry tag: ${version.package_name}:${version.name}`);
+                }
             }
             catch (error) {
-                console.error(`Error deleting GitLab image ${image.name}:`, error instanceof Error ? error.message : String(error));
+                console.error(`❌ Error deleting GitLab tag ${version.package_name}:${version.name}:`, error instanceof Error ? error.message : String(error));
             }
         }
     }
-    // Delete Docker Hub images
+    // Delete Docker Hub image tags
     if (apis.dockerHubApi &&
         items.dockerHub &&
         config.docker.dockerHubUsername &&
         config.docker.dockerHubToken) {
         try {
-            // Authenticate first
             const authResponse = await axios_1.default.post('https://hub.docker.com/v2/users/login', {
                 username: config.docker.dockerHubUsername,
                 password: config.docker.dockerHubToken
             });
             apis.dockerHubApi.defaults.headers.Authorization = `Bearer ${authResponse.data.token}`;
-            // Delete repositories
-            for (const image of items.dockerHub) {
+            for (const version of items.dockerHub) {
                 try {
-                    await apis.dockerHubApi.delete(`/repositories/${config.docker.dockerHubUsername}/${image.name}/`);
-                    console.log(`Deleted Docker Hub repository: ${image.name}`);
+                    await apis.dockerHubApi.delete(`/repositories/${config.docker.dockerHubUsername}/${version.package_name}/tags/${version.name}/`);
+                    console.log(`✅ Deleted Docker Hub tag: ${version.package_name}:${version.name}`);
                 }
                 catch (error) {
-                    console.error(`Error deleting Docker Hub repository ${image.name}:`, error instanceof Error ? error.message : String(error));
+                    console.error(`❌ Error deleting Docker Hub tag ${version.package_name}:${version.name}:`, error instanceof Error ? error.message : String(error));
                 }
             }
         }
         catch (error) {
-            console.error('Error authenticating with Docker Hub:', error instanceof Error ? error.message : String(error));
+            console.error('❌ Error authenticating with Docker Hub:', error instanceof Error ? error.message : String(error));
         }
     }
+}
+
+
+/***/ }),
+
+/***/ 25121:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createGitHubApi = createGitHubApi;
+exports.fetchGithubItems = fetchGithubItems;
+exports.deleteGithubItems = deleteGithubItems;
+const axios_1 = __importDefault(__nccwpck_require__(87269));
+/**
+ * Create GitHub API client
+ */
+function createGitHubApi(config) {
+    return axios_1.default.create({
+        baseURL: 'https://api.github.com',
+        headers: {
+            Authorization: `token ${config.github.token}`,
+            Accept: 'application/vnd.github.v3+json'
+        }
+    });
+}
+/**
+ * Fetch GitHub releases and tags
+ */
+async function fetchGithubItems(githubApi, config) {
+    const { owner, repo } = config.github;
+    const [releases, tags] = await Promise.all([
+        githubApi
+            .get(`/repos/${owner}/${repo}/releases`)
+            .then(res => res.data),
+        githubApi
+            .get(`/repos/${owner}/${repo}/tags`)
+            .then(res => res.data)
+    ]);
+    return { releases, tags };
+}
+/**
+ * Delete GitHub releases and tags
+ */
+async function deleteGithubItems(githubApi, config, items) {
+    const { owner, repo } = config.github;
+    for (const release of items.releases || []) {
+        await githubApi.delete(`/repos/${owner}/${repo}/releases/${release.id}`);
+        console.log(`✅ Deleted GitHub release: ${release.tag_name}`);
+    }
+    for (const tag of items.tags || []) {
+        await githubApi.delete(`/repos/${owner}/${repo}/git/refs/tags/${tag.name}`);
+        console.log(`✅ Deleted GitHub tag: ${tag.name}`);
+    }
+}
+
+
+/***/ }),
+
+/***/ 35753:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createGitLabApi = createGitLabApi;
+exports.fetchGitlabItems = fetchGitlabItems;
+exports.deleteGitlabItems = deleteGitlabItems;
+const axios_1 = __importDefault(__nccwpck_require__(87269));
+/**
+ * Create GitLab API client
+ */
+function createGitLabApi(config) {
+    return axios_1.default.create({
+        baseURL: 'https://gitlab.com/api/v4',
+        headers: {
+            'PRIVATE-TOKEN': config.gitlab.token
+        }
+    });
+}
+/**
+ * Fetch GitLab releases and tags
+ */
+async function fetchGitlabItems(gitlabApi, config) {
+    const projectId = encodeURIComponent(`${config.gitlab.owner}/${config.gitlab.repo}`);
+    const [releases, tags] = await Promise.all([
+        gitlabApi
+            .get(`/projects/${projectId}/releases`)
+            .then(res => res.data),
+        gitlabApi
+            .get(`/projects/${projectId}/repository/tags`)
+            .then(res => res.data)
+    ]);
+    return { releases, tags };
+}
+/**
+ * Delete GitLab releases and tags
+ */
+async function deleteGitlabItems(gitlabApi, config, items) {
+    const projectId = encodeURIComponent(`${config.gitlab.owner}/${config.gitlab.repo}`);
+    for (const release of items.releases || []) {
+        await gitlabApi.delete(`/projects/${projectId}/releases/${release.tag_name}`);
+        console.log(`✅ Deleted GitLab release: ${release.tag_name}`);
+    }
+    for (const tag of items.tags || []) {
+        await gitlabApi.delete(`/projects/${projectId}/repository/tags/${tag.name}`);
+        console.log(`✅ Deleted GitLab tag: ${tag.name}`);
+    }
+}
+
+
+/***/ }),
+
+/***/ 5544:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createApis = createApis;
+const github_1 = __nccwpck_require__(25121);
+const gitlab_1 = __nccwpck_require__(35753);
+const docker_1 = __nccwpck_require__(83282);
+__exportStar(__nccwpck_require__(25121), exports);
+__exportStar(__nccwpck_require__(35753), exports);
+__exportStar(__nccwpck_require__(83282), exports);
+/**
+ * Create all API clients based on configuration
+ */
+function createApis(config) {
+    const githubApi = (0, github_1.createGitHubApi)(config);
+    const gitlabApi = (0, gitlab_1.createGitLabApi)(config);
+    let apis = { githubApi, gitlabApi };
+    // Add Docker registry APIs
+    apis = (0, docker_1.createDockerApis)(config, apis);
+    return apis;
+}
+
+
+/***/ }),
+
+/***/ 8212:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.selectImageGroups = selectImageGroups;
+exports.selectVersionsForGroup = selectVersionsForGroup;
+exports.confirmAndDeleteGroup = confirmAndDeleteGroup;
+const inquirer_1 = __importDefault(__nccwpck_require__(2432));
+const api_1 = __nccwpck_require__(5544);
+/**
+ * Select image groups to work with
+ */
+async function selectImageGroups(groups) {
+    if (groups.length === 0) {
+        console.log('ℹ️  No container images found');
+        return [];
+    }
+    const choices = groups.map(group => {
+        const registries = [];
+        if (group.registries.ghcr)
+            registries.push('GHCR');
+        if (group.registries.gitlab)
+            registries.push('GitLab');
+        if (group.registries.dockerHub)
+            registries.push('Docker Hub');
+        return {
+            name: `${group.baseName} (${registries.join(', ')}) - ${group.totalVersions} total versions`,
+            value: group,
+            checked: true
+        };
+    });
+    // Set only first as checked
+    if (choices.length > 0) {
+        choices.forEach((c, i) => (c.checked = i === 0));
+    }
+    const { selected } = await inquirer_1.default.prompt([
+        {
+            type: 'checkbox',
+            name: 'selected',
+            message: '📦 Select image groups to clean up (space to select, enter to confirm):',
+            choices,
+            pageSize: 15
+        }
+    ]);
+    return selected;
+}
+/**
+ * Select versions for an image group across all registries
+ */
+async function selectVersionsForGroup(group, apis, config) {
+    console.log(`\n🔍 Working on: ${group.baseName}`);
+    const selection = {
+        baseName: group.baseName,
+        ghcr: [],
+        gitlab: [],
+        dockerHub: []
+    };
+    // GHCR versions
+    if (group.registries.ghcr) {
+        console.log(`\n📍 Fetching GHCR versions...`);
+        const versions = await (0, api_1.fetchDockerImageVersions)(apis, config, 'ghcr', group.registries.ghcr);
+        if (versions.length > 0) {
+            const versionChoices = versions.map((version) => ({
+                name: version.tags && version.tags.length > 0
+                    ? `${version.tags.join(', ')} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`
+                    : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`,
+                value: version
+            }));
+            const { selectedVersions } = await inquirer_1.default.prompt([
+                {
+                    type: 'checkbox',
+                    name: 'selectedVersions',
+                    message: `🎯 [GHCR] Select versions of "${group.baseName}" to delete:`,
+                    choices: versionChoices,
+                    pageSize: 15
+                }
+            ]);
+            selection.ghcr = selectedVersions;
+        }
+    }
+    // GitLab Registry versions
+    if (group.registries.gitlab) {
+        console.log(`\n📍 Fetching GitLab Registry versions...`);
+        const versions = await (0, api_1.fetchDockerImageVersions)(apis, config, 'gitlab', group.registries.gitlab);
+        if (versions.length > 0) {
+            const versionChoices = versions.map((version) => ({
+                name: version.tags && version.tags.length > 0
+                    ? `${version.tags.join(', ')} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`
+                    : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`,
+                value: version
+            }));
+            const { selectedVersions } = await inquirer_1.default.prompt([
+                {
+                    type: 'checkbox',
+                    name: 'selectedVersions',
+                    message: `🎯 [GitLab] Select versions of "${group.baseName}" to delete:`,
+                    choices: versionChoices,
+                    pageSize: 15
+                }
+            ]);
+            selection.gitlab = selectedVersions;
+        }
+    }
+    // Docker Hub versions
+    if (group.registries.dockerHub) {
+        console.log(`\n📍 Fetching Docker Hub versions...`);
+        const versions = await (0, api_1.fetchDockerImageVersions)(apis, config, 'dockerhub', group.registries.dockerHub);
+        if (versions.length > 0) {
+            const versionChoices = versions.map((version) => ({
+                name: version.tags && version.tags.length > 0
+                    ? `${version.tags.join(', ')} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`
+                    : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : 'unknown date'})`,
+                value: version
+            }));
+            const { selectedVersions } = await inquirer_1.default.prompt([
+                {
+                    type: 'checkbox',
+                    name: 'selectedVersions',
+                    message: `🎯 [Docker Hub] Select versions of "${group.baseName}" to delete:`,
+                    choices: versionChoices,
+                    pageSize: 15
+                }
+            ]);
+            selection.dockerHub = selectedVersions;
+        }
+    }
+    return selection;
+}
+/**
+ * Confirm and delete one image group
+ */
+async function confirmAndDeleteGroup(selection, apis, config) {
+    const totalVersions = selection.ghcr.length + selection.gitlab.length + selection.dockerHub.length;
+    if (totalVersions === 0) {
+        console.log(`\n⏭️  No versions selected for "${selection.baseName}". Skipping...`);
+        return;
+    }
+    console.log(`\n📊 Summary for "${selection.baseName}":`);
+    if (selection.ghcr.length > 0) {
+        console.log(`  • GHCR: ${selection.ghcr.length} versions`);
+    }
+    if (selection.gitlab.length > 0) {
+        console.log(`  • GitLab: ${selection.gitlab.length} versions`);
+    }
+    if (selection.dockerHub.length > 0) {
+        console.log(`  • Docker Hub: ${selection.dockerHub.length} versions`);
+    }
+    const { confirm } = await inquirer_1.default.prompt([
+        {
+            type: 'confirm',
+            name: 'confirm',
+            message: `🗑️  Delete ${totalVersions} total versions of "${selection.baseName}"?`,
+            default: false
+        }
+    ]);
+    if (!confirm) {
+        console.log(`❌ Skipped "${selection.baseName}"`);
+        return;
+    }
+    // Perform deletion
+    await (0, api_1.deleteDockerImages)(apis, config, {
+        ghcr: selection.ghcr,
+        gitlab: selection.gitlab,
+        dockerHub: selection.dockerHub
+    });
+    console.log(`✅ Deleted versions of "${selection.baseName}"`);
+}
+
+
+/***/ }),
+
+/***/ 70486:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(51981), exports);
+__exportStar(__nccwpck_require__(20360), exports);
+__exportStar(__nccwpck_require__(8212), exports);
+
+
+/***/ }),
+
+/***/ 51981:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BACK_OPTION = void 0;
+exports.selectWhatToDelete = selectWhatToDelete;
+exports.selectPlatforms = selectPlatforms;
+const inquirer_1 = __importDefault(__nccwpck_require__(2432));
+exports.BACK_OPTION = '← Go Back';
+/**
+ * Step 1: Ask what to delete
+ */
+async function selectWhatToDelete() {
+    const { whatToDelete } = await inquirer_1.default.prompt([
+        {
+            type: 'list',
+            name: 'whatToDelete',
+            message: '📦 What do you want to delete?',
+            default: 0,
+            choices: [
+                { name: 'Releases only', value: 'releases' },
+                { name: 'Tags only', value: 'tags' },
+                { name: 'Containers only', value: 'containers' },
+                { name: 'Releases & Tags', value: 'releases-tags' },
+                {
+                    name: 'Everything Everywhere All at Once 🎬',
+                    value: 'everything'
+                },
+                new inquirer_1.default.Separator(),
+                { name: '❌ Exit', value: 'exit' }
+            ]
+        }
+    ]);
+    if (whatToDelete === 'exit') {
+        process.exit(0);
+    }
+    return {
+        deleteReleases: ['releases', 'releases-tags', 'everything'].includes(whatToDelete),
+        deleteTags: ['tags', 'releases-tags', 'everything'].includes(whatToDelete),
+        deleteContainers: ['containers', 'everything'].includes(whatToDelete),
+        goBack: false
+    };
+}
+/**
+ * Step 2: Ask which platforms to use
+ */
+async function selectPlatforms(options) {
+    const platforms = {
+        github: false,
+        gitlab: false,
+        ghcr: false,
+        gitlabRegistry: false,
+        dockerHub: false
+    };
+    // Ask for Git platforms if we need releases/tags
+    if (options.needGitPlatforms) {
+        const { gitPlatforms } = await inquirer_1.default.prompt([
+            {
+                type: 'list',
+                name: 'gitPlatforms',
+                message: '🌐 From where do you want to delete?',
+                default: 0,
+                choices: [
+                    { name: 'GitHub', value: 'github' },
+                    { name: 'GitLab', value: 'gitlab' },
+                    { name: 'Everywhere', value: 'everywhere' },
+                    new inquirer_1.default.Separator(),
+                    { name: exports.BACK_OPTION, value: 'back' }
+                ]
+            }
+        ]);
+        if (gitPlatforms === 'back') {
+            return { goBack: true };
+        }
+        platforms.github = ['github', 'everywhere'].includes(gitPlatforms);
+        platforms.gitlab = ['gitlab', 'everywhere'].includes(gitPlatforms);
+        // If selecting containers and chose "everywhere", auto-select all container registries
+        if (options.needContainerRegistries && gitPlatforms === 'everywhere') {
+            platforms.ghcr = true;
+            platforms.gitlabRegistry = true;
+            platforms.dockerHub = true;
+            return { ...platforms, goBack: false };
+        }
+        // If we also need containers and GitHub is selected, auto-select GHCR
+        if (options.needContainerRegistries && platforms.github) {
+            platforms.ghcr = true;
+        }
+    }
+    // Ask for container registries if we need them and didn't select "everywhere"
+    if (options.needContainerRegistries) {
+        const choices = [];
+        // Only show GHCR if GitHub wasn't already selected
+        if (!platforms.ghcr) {
+            choices.push({
+                name: 'GitHub Container Registry (GHCR)',
+                value: 'ghcr',
+                checked: true
+            });
+        }
+        choices.push({ name: 'GitLab Container Registry', value: 'gitlab-registry' }, { name: 'Docker Hub', value: 'dockerhub' }, { name: 'Everywhere', value: 'all-containers' }, new inquirer_1.default.Separator(), { name: exports.BACK_OPTION, value: 'back' });
+        const { containerRegistries } = await inquirer_1.default.prompt([
+            {
+                type: 'checkbox',
+                name: 'containerRegistries',
+                message: '📦 Select container registries (space to select, enter to confirm):',
+                choices
+            }
+        ]);
+        // Check if back was selected
+        if (containerRegistries.includes('back')) {
+            return { goBack: true };
+        }
+        if (containerRegistries.includes('all-containers')) {
+            platforms.ghcr = true;
+            platforms.gitlabRegistry = true;
+            platforms.dockerHub = true;
+        }
+        else {
+            if (!platforms.ghcr) {
+                platforms.ghcr = containerRegistries.includes('ghcr');
+            }
+            platforms.gitlabRegistry = containerRegistries.includes('gitlab-registry');
+            platforms.dockerHub = containerRegistries.includes('dockerhub');
+        }
+    }
+    return { ...platforms, goBack: false };
+}
+
+
+/***/ }),
+
+/***/ 20360:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.selectItems = selectItems;
+const inquirer_1 = __importDefault(__nccwpck_require__(2432));
+/**
+ * Step 3: Select specific releases or tags to delete
+ */
+async function selectItems(items, type, platform) {
+    if (items.length === 0) {
+        console.log(`ℹ️  No ${type} found on ${platform}`);
+        return [];
+    }
+    const choices = items.map(item => ({
+        name: type === 'releases'
+            ? `${item.tag_name} - ${item.name || 'No title'}`
+            : item.name,
+        value: item
+    }));
+    const { selected } = await inquirer_1.default.prompt([
+        {
+            type: 'checkbox',
+            name: 'selected',
+            message: `🎯 Select ${platform} ${type} to delete (space to select, enter to confirm):`,
+            choices,
+            pageSize: 15
+        }
+    ]);
+    if (selected.length === 0) {
+        console.log(`⚠️  No ${type} selected from ${platform}. Skipping...`);
+        return [];
+    }
+    return selected;
+}
+
+
+/***/ }),
+
+/***/ 3639:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cleanup = cleanup;
+const inquirer_1 = __importDefault(__nccwpck_require__(2432));
+const api_1 = __nccwpck_require__(5544);
+const config_1 = __nccwpck_require__(84489);
+const cli_1 = __nccwpck_require__(70486);
+const helpers_1 = __nccwpck_require__(253);
+/**
+ * Main cleanup orchestration function
+ */
+async function cleanup() {
+    try {
+        console.log('🚀 Welcome to Release Cleanup Tool!\n');
+        let whatToDelete;
+        let platforms;
+        // Step 1: What to delete? (with back navigation loop)
+        while (true) {
+            whatToDelete = await (0, cli_1.selectWhatToDelete)();
+            if (whatToDelete.goBack) {
+                // Can't go back from first step, restart
+                continue;
+            }
+            // Step 2: From where? (with back navigation)
+            const platformsResult = await (0, cli_1.selectPlatforms)({
+                needGitPlatforms: whatToDelete.deleteReleases || whatToDelete.deleteTags,
+                needContainerRegistries: whatToDelete.deleteContainers
+            });
+            if (platformsResult.goBack) {
+                // Go back to step 1
+                console.log('\n');
+                continue;
+            }
+            platforms = platformsResult;
+            break; // Both steps completed, exit loop
+        }
+        // Check if any platform was selected
+        const anyPlatformSelected = platforms.github ||
+            platforms.gitlab ||
+            platforms.ghcr ||
+            platforms.gitlabRegistry ||
+            platforms.dockerHub;
+        if (!anyPlatformSelected) {
+            console.log('❌ No platforms selected. Exiting...');
+            return;
+        }
+        console.log('\n📋 Configuration Summary:');
+        console.log('━'.repeat(50));
+        if (whatToDelete.deleteReleases)
+            console.log('✓ Deleting releases');
+        if (whatToDelete.deleteTags)
+            console.log('✓ Deleting tags');
+        if (whatToDelete.deleteContainers)
+            console.log('✓ Deleting containers');
+        console.log('\n🌐 From platforms:');
+        if (platforms.github)
+            console.log('  • GitHub');
+        if (platforms.gitlab)
+            console.log('  • GitLab');
+        if (platforms.ghcr)
+            console.log('  • GitHub Container Registry (GHCR)');
+        if (platforms.gitlabRegistry)
+            console.log('  • GitLab Container Registry');
+        if (platforms.dockerHub)
+            console.log('  • Docker Hub');
+        console.log('━'.repeat(50) + '\n');
+        // Get configuration (will prompt for missing credentials and save to .env)
+        const config = await (0, config_1.getConfig)(platforms);
+        const apis = (0, api_1.createApis)(config);
+        // Fetch items from selected platforms
+        console.log('🔍 Fetching items...\n');
+        const items = {
+            github: platforms.github
+                ? await (0, api_1.fetchGithubItems)(apis.githubApi, config)
+                : null,
+            gitlab: platforms.gitlab
+                ? await (0, api_1.fetchGitlabItems)(apis.gitlabApi, config)
+                : null,
+            docker: platforms.ghcr || platforms.gitlabRegistry || platforms.dockerHub
+                ? await (0, api_1.fetchDockerImages)(apis, config, [
+                    ...(platforms.ghcr ? ['ghcr'] : []),
+                    ...(platforms.gitlabRegistry ? ['gitlab'] : []),
+                    ...(platforms.dockerHub ? ['dockerhub'] : [])
+                ])
+                : null
+        };
+        // Step 3: Select specific items to delete
+        const toDelete = {
+            github: items.github && platforms.github
+                ? {
+                    releases: whatToDelete.deleteReleases
+                        ? await (0, cli_1.selectItems)(items.github.releases, 'releases', 'GitHub')
+                        : [],
+                    tags: whatToDelete.deleteTags
+                        ? await (0, cli_1.selectItems)(items.github.tags, 'tags', 'GitHub')
+                        : []
+                }
+                : null,
+            gitlab: items.gitlab && platforms.gitlab
+                ? {
+                    releases: whatToDelete.deleteReleases
+                        ? await (0, cli_1.selectItems)(items.gitlab.releases, 'releases', 'GitLab')
+                        : [],
+                    tags: whatToDelete.deleteTags
+                        ? await (0, cli_1.selectItems)(items.gitlab.tags, 'tags', 'GitLab')
+                        : []
+                }
+                : null,
+            docker: null // Will be handled differently with grouped approach
+        };
+        // Handle container cleanup with grouped approach
+        if (items.docker && whatToDelete.deleteContainers) {
+            // Group images by base name across registries
+            const imageGroups = (0, helpers_1.groupImagesByName)(items.docker);
+            if (imageGroups.length > 0) {
+                // Select which groups to work with
+                const selectedGroups = await (0, cli_1.selectImageGroups)(imageGroups);
+                if (selectedGroups.length > 0) {
+                    for (const group of selectedGroups) {
+                        // Select versions for this group across all registries
+                        const versionSelection = await (0, cli_1.selectVersionsForGroup)(group, apis, config);
+                        // Confirm and delete this group
+                        await (0, cli_1.confirmAndDeleteGroup)(versionSelection, apis, config);
+                        // Ask if user wants to continue with next group
+                        if (selectedGroups.indexOf(group) < selectedGroups.length - 1) {
+                            const { continueNext } = await inquirer_1.default.prompt([
+                                {
+                                    type: 'confirm',
+                                    name: 'continueNext',
+                                    message: '➡️  Continue with next image group?',
+                                    default: true
+                                }
+                            ]);
+                            if (!continueNext) {
+                                console.log('\n⏭️  Skipping remaining groups...');
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Count total items to delete (releases and tags only, containers already handled)
+        const totalToDelete = (toDelete.github?.releases.length || 0) +
+            (toDelete.github?.tags.length || 0) +
+            (toDelete.gitlab?.releases.length || 0) +
+            (toDelete.gitlab?.tags.length || 0);
+        if (totalToDelete === 0) {
+            console.log('\n✅ Cleanup completed.');
+            return;
+        }
+        console.log(`\n⚠️  Total releases/tags to delete: ${totalToDelete}`);
+        const { confirm } = await inquirer_1.default.prompt([
+            {
+                type: 'confirm',
+                name: 'confirm',
+                message: '🗑️  Are you sure you want to delete the selected releases/tags?',
+                default: false
+            }
+        ]);
+        if (!confirm) {
+            console.log('❌ Operation cancelled');
+            return;
+        }
+        console.log('\n🔄 Starting cleanup...\n');
+        const operations = [];
+        if (toDelete.github &&
+            (toDelete.github.releases.length > 0 || toDelete.github.tags.length > 0)) {
+            operations.push((0, api_1.deleteGithubItems)(apis.githubApi, config, toDelete.github).catch(error => console.error('❌ GitHub Error:', error.message)));
+        }
+        if (toDelete.gitlab &&
+            (toDelete.gitlab.releases.length > 0 || toDelete.gitlab.tags.length > 0)) {
+            operations.push((0, api_1.deleteGitlabItems)(apis.gitlabApi, config, toDelete.gitlab).catch(error => console.error('❌ GitLab Error:', error.message)));
+        }
+        await Promise.all(operations);
+        console.log('\n✅ Cleanup completed successfully!');
+    }
+    catch (error) {
+        console.error('\n❌ Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
+}
+
+
+/***/ }),
+
+/***/ 84489:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getConfig = getConfig;
+const inquirer_1 = __importDefault(__nccwpck_require__(2432));
+const helpers_1 = __nccwpck_require__(253);
+/**
+ * Get configuration from environment or prompt user
+ */
+async function getConfig(platforms) {
+    const envConfig = {
+        github: {
+            token: process.env.GH_TOKEN,
+            owner: process.env.GH_OWNER || process.env.GL_OWNER,
+            repo: process.env.GH_REPO || process.env.GL_REPO
+        },
+        gitlab: {
+            token: process.env.GITLAB_TOKEN,
+            owner: process.env.GL_OWNER || process.env.GH_OWNER,
+            repo: process.env.GL_REPO || process.env.GH_REPO
+        },
+        docker: {
+            ghcrToken: process.env.GHCR_TOKEN || process.env.GH_TOKEN,
+            ghcrOwner: process.env.GHCR_OWNER || process.env.GH_OWNER,
+            ghcrPackage: process.env.GHCR_PACKAGE,
+            gitlabToken: process.env.GITLAB_TOKEN,
+            gitlabProject: process.env.GL_PROJECT,
+            dockerHubToken: process.env.DOCKERHUB_TOKEN,
+            dockerHubUsername: process.env.DOCKER_HUB_USERNAME,
+            dockerHubRepository: process.env.DOCKER_HUB_REPO
+        }
+    };
+    const questions = [];
+    const envVars = {};
+    // Collect missing credentials based on selected platforms
+    if (platforms.github || platforms.ghcr) {
+        if (!envConfig.github.token) {
+            questions.push({
+                type: 'password',
+                name: 'githubToken',
+                message: '🔑 Enter GitHub Personal Access Token:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Token')
+            });
+        }
+        if (!envConfig.github.owner) {
+            questions.push({
+                type: 'input',
+                name: 'githubOwner',
+                message: '👤 Enter GitHub username/organization:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Username')
+            });
+        }
+        if (platforms.github && !envConfig.github.repo) {
+            questions.push({
+                type: 'input',
+                name: 'githubRepo',
+                message: '📦 Enter GitHub repository name:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Repository')
+            });
+        }
+    }
+    if (platforms.gitlab || platforms.gitlabRegistry) {
+        if (!envConfig.gitlab.token) {
+            questions.push({
+                type: 'password',
+                name: 'gitlabToken',
+                message: '🔑 Enter GitLab Personal Access Token:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Token')
+            });
+        }
+        if (!envConfig.gitlab.owner) {
+            questions.push({
+                type: 'input',
+                name: 'gitlabOwner',
+                message: '👤 Enter GitLab username/organization:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Username')
+            });
+        }
+        if (platforms.gitlab && !envConfig.gitlab.repo) {
+            questions.push({
+                type: 'input',
+                name: 'gitlabRepo',
+                message: '📦 Enter GitLab repository name:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Repository')
+            });
+        }
+        if (platforms.gitlabRegistry && !envConfig.docker.gitlabProject) {
+            questions.push({
+                type: 'input',
+                name: 'gitlabProject',
+                message: '📦 Enter GitLab project ID or path (e.g., username/project):',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Project ID')
+            });
+        }
+    }
+    if (platforms.dockerHub) {
+        if (!envConfig.docker.dockerHubToken) {
+            questions.push({
+                type: 'password',
+                name: 'dockerHubToken',
+                message: '🔑 Enter Docker Hub password or access token:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Token')
+            });
+        }
+        if (!envConfig.docker.dockerHubUsername) {
+            questions.push({
+                type: 'input',
+                name: 'dockerHubUsername',
+                message: '👤 Enter Docker Hub username:',
+                validate: (input) => (0, helpers_1.validateRequired)(input, 'Username')
+            });
+        }
+    }
+    const answers = await inquirer_1.default.prompt(questions);
+    // Build the config
+    const config = {
+        github: {
+            token: envConfig.github.token || answers.githubToken || '',
+            owner: envConfig.github.owner || answers.githubOwner || '',
+            repo: envConfig.github.repo || answers.githubRepo || ''
+        },
+        gitlab: {
+            token: envConfig.gitlab.token || answers.gitlabToken || '',
+            owner: envConfig.gitlab.owner || answers.gitlabOwner || '',
+            repo: envConfig.gitlab.repo || answers.gitlabRepo || ''
+        },
+        docker: {
+            ghcrToken: envConfig.docker.ghcrToken || answers.githubToken,
+            ghcrOwner: envConfig.docker.ghcrOwner || answers.githubOwner,
+            ghcrPackage: envConfig.docker.ghcrPackage,
+            gitlabToken: envConfig.docker.gitlabToken || answers.gitlabToken,
+            gitlabProject: envConfig.docker.gitlabProject || answers.gitlabProject,
+            dockerHubToken: envConfig.docker.dockerHubToken || answers.dockerHubToken,
+            dockerHubUsername: envConfig.docker.dockerHubUsername || answers.dockerHubUsername,
+            dockerHubRepository: envConfig.docker.dockerHubRepository
+        }
+    };
+    // Save to .env if any new credentials were entered
+    if (Object.keys(answers).length > 0) {
+        console.log('\n💾 Saving credentials to .env file...');
+        await (0, helpers_1.saveToEnv)(answers, platforms);
+        console.log("✅ Credentials saved! You won't need to enter them again.\n");
+    }
+    return config;
+}
+
+
+/***/ }),
+
+/***/ 43483:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(84489), exports);
+__exportStar(__nccwpck_require__(3639), exports);
+
+
+/***/ }),
+
+/***/ 1606:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.saveToEnv = saveToEnv;
+exports.ensureGitignore = ensureGitignore;
+const fs_1 = __nccwpck_require__(79896);
+const path_1 = __nccwpck_require__(16928);
+/**
+ * Save credentials to .env file
+ */
+async function saveToEnv(answers, platforms) {
+    const envPath = (0, path_1.resolve)(process.cwd(), '.env');
+    let envContent = '';
+    // Read existing .env if it exists
+    if ((0, fs_1.existsSync)(envPath)) {
+        envContent = (0, fs_1.readFileSync)(envPath, 'utf-8');
+    }
+    const newVars = [];
+    // Add GitHub credentials
+    if (answers.githubToken && !envContent.includes('GH_TOKEN=')) {
+        newVars.push(`GH_TOKEN=${answers.githubToken}`);
+    }
+    if (answers.githubOwner && !envContent.includes('GH_OWNER=')) {
+        newVars.push(`GH_OWNER=${answers.githubOwner}`);
+    }
+    if (answers.githubRepo && !envContent.includes('GH_REPO=')) {
+        newVars.push(`GH_REPO=${answers.githubRepo}`);
+    }
+    // Add GitLab credentials
+    if (answers.gitlabToken && !envContent.includes('GITLAB_TOKEN=')) {
+        newVars.push(`GITLAB_TOKEN=${answers.gitlabToken}`);
+    }
+    if (answers.gitlabOwner && !envContent.includes('GL_OWNER=')) {
+        newVars.push(`GL_OWNER=${answers.gitlabOwner}`);
+    }
+    if (answers.gitlabRepo && !envContent.includes('GL_REPO=')) {
+        newVars.push(`GL_REPO=${answers.gitlabRepo}`);
+    }
+    if (answers.gitlabProject && !envContent.includes('GL_PROJECT=')) {
+        newVars.push(`GL_PROJECT=${answers.gitlabProject}`);
+    }
+    // Add GHCR credentials (use GitHub token and owner)
+    if (platforms.ghcr &&
+        answers.githubToken &&
+        !envContent.includes('GHCR_TOKEN=')) {
+        newVars.push(`GHCR_TOKEN=${answers.githubToken}`);
+    }
+    if (platforms.ghcr &&
+        answers.githubOwner &&
+        !envContent.includes('GHCR_OWNER=')) {
+        newVars.push(`GHCR_OWNER=${answers.githubOwner}`);
+    }
+    // Add Docker Hub credentials
+    if (answers.dockerHubToken && !envContent.includes('DOCKERHUB_TOKEN=')) {
+        newVars.push(`DOCKERHUB_TOKEN=${answers.dockerHubToken}`);
+    }
+    if (answers.dockerHubUsername &&
+        !envContent.includes('DOCKER_HUB_USERNAME=')) {
+        newVars.push(`DOCKER_HUB_USERNAME=${answers.dockerHubUsername}`);
+    }
+    if (newVars.length > 0) {
+        // Add a section header if this is a new file or first addition
+        const header = envContent.length === 0
+            ? '# Release Cleanup Configuration\n# Auto-generated - DO NOT COMMIT\n\n'
+            : '\n';
+        const newContent = header + newVars.join('\n') + '\n';
+        if ((0, fs_1.existsSync)(envPath)) {
+            (0, fs_1.appendFileSync)(envPath, newContent);
+        }
+        else {
+            (0, fs_1.writeFileSync)(envPath, newContent);
+        }
+        // Ensure .env is in .gitignore
+        await ensureGitignore();
+    }
+}
+/**
+ * Ensure .env is added to .gitignore
+ */
+async function ensureGitignore() {
+    const gitignorePath = (0, path_1.resolve)(process.cwd(), '.gitignore');
+    if ((0, fs_1.existsSync)(gitignorePath)) {
+        const content = (0, fs_1.readFileSync)(gitignorePath, 'utf-8');
+        if (!content.includes('.env')) {
+            (0, fs_1.appendFileSync)(gitignorePath, '\n# Environment variables\n.env\n');
+        }
+    }
+    else {
+        (0, fs_1.writeFileSync)(gitignorePath, '# Environment variables\n.env\n');
+    }
+}
+
+
+/***/ }),
+
+/***/ 92652:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.extractBaseName = extractBaseName;
+exports.groupImagesByName = groupImagesByName;
+/**
+ * Extract base image name from full registry path
+ * Examples:
+ * - ghcr.io/user/gitpod-bun → gitpod-bun
+ * - registry.gitlab.com/user/project/gitpod-bun → gitpod-bun
+ * - user/gitpod-bun → gitpod-bun
+ * - devcontainers/bun-node → bun-node
+ */
+function extractBaseName(fullName) {
+    const parts = fullName.split('/');
+    return parts[parts.length - 1] || fullName;
+}
+/**
+ * Group images by base name across all registries
+ * Images with the same base name from different registries are grouped together
+ */
+function groupImagesByName(dockerImages) {
+    const groupMap = new Map();
+    // Process GHCR images
+    for (const image of dockerImages.ghcr) {
+        const baseName = extractBaseName(image.name);
+        if (!groupMap.has(baseName)) {
+            groupMap.set(baseName, {
+                baseName,
+                registries: {},
+                totalVersions: 0
+            });
+        }
+        const group = groupMap.get(baseName);
+        group.registries.ghcr = image;
+        group.totalVersions += image.tags?.length || 0;
+    }
+    // Process GitLab images
+    for (const image of dockerImages.gitlab) {
+        const baseName = extractBaseName(image.name);
+        if (!groupMap.has(baseName)) {
+            groupMap.set(baseName, {
+                baseName,
+                registries: {},
+                totalVersions: 0
+            });
+        }
+        const group = groupMap.get(baseName);
+        group.registries.gitlab = image;
+        group.totalVersions += image.tags?.length || 0;
+    }
+    // Process Docker Hub images
+    for (const image of dockerImages.dockerHub) {
+        const baseName = extractBaseName(image.name);
+        if (!groupMap.has(baseName)) {
+            groupMap.set(baseName, {
+                baseName,
+                registries: {},
+                totalVersions: 0
+            });
+        }
+        const group = groupMap.get(baseName);
+        group.registries.dockerHub = image;
+        group.totalVersions += image.tags?.length || 0;
+    }
+    return Array.from(groupMap.values()).sort((a, b) => a.baseName.localeCompare(b.baseName));
+}
+
+
+/***/ }),
+
+/***/ 253:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(92652), exports);
+__exportStar(__nccwpck_require__(1606), exports);
+__exportStar(__nccwpck_require__(2794), exports);
+
+
+/***/ }),
+
+/***/ 2794:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.validateRequired = validateRequired;
+exports.validateToken = validateToken;
+exports.validateUsername = validateUsername;
+exports.validateRepo = validateRepo;
+/**
+ * Validate that input is not empty
+ */
+function validateRequired(input, fieldName = 'Field') {
+    return input.length > 0 || `${fieldName} is required`;
+}
+/**
+ * Validate token format (basic check for non-empty string)
+ */
+function validateToken(input) {
+    return validateRequired(input, 'Token');
+}
+/**
+ * Validate username/owner format
+ */
+function validateUsername(input) {
+    return validateRequired(input, 'Username');
+}
+/**
+ * Validate repository name
+ */
+function validateRepo(input) {
+    return validateRequired(input, 'Repository');
 }
 
 
@@ -41550,13 +42414,20 @@ module.exports = /*#__PURE__*/JSON.parse('{"application/1d-interleaved-parityfec
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(79407);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(43483);
+// Run the cleanup tool
+(0, core_1.cleanup)().catch(console.error);
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map

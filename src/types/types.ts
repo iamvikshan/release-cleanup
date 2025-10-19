@@ -56,6 +56,34 @@ export interface DockerImage {
   tags?: string[]
   digest?: string
   created_at?: string
+  versions?: DockerImageVersion[]
+}
+
+export interface DockerImageVersion {
+  id: number | string
+  name?: string
+  tags: string[]
+  digest?: string
+  created_at?: string
+  size?: number
+  package_name?: string // Parent package name
+}
+
+export interface ImageGroup {
+  baseName: string // e.g., "gitpod-bun"
+  registries: {
+    ghcr?: DockerImage
+    gitlab?: DockerImage
+    dockerHub?: DockerImage
+  }
+  totalVersions: number
+}
+
+export interface GroupedVersionSelection {
+  baseName: string
+  ghcr: DockerImageVersion[]
+  gitlab: DockerImageVersion[]
+  dockerHub: DockerImageVersion[]
 }
 
 export interface Items {
@@ -84,8 +112,8 @@ export interface ItemsToDelete {
     tags: GitLabTag[]
   } | null
   docker: {
-    ghcr: DockerImage[]
-    gitlab: DockerImage[]
-    dockerHub: DockerImage[]
+    ghcr: DockerImageVersion[]
+    gitlab: DockerImageVersion[]
+    dockerHub: DockerImageVersion[]
   } | null
 }
