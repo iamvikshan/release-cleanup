@@ -1,5 +1,11 @@
 # Git Release Cleanup
 
+<div align="center">
+
+[![wakatime](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/723ec1bc-7dd6-4696-97d3-f61f1300501c.svg)](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/723ec1bc-7dd6-4696-97d3-f61f1300501c)
+
+</div>
+
 A powerful CLI tool to easily delete releases, tags, and container images across GitHub, GitLab, and
 Docker registries.
 
