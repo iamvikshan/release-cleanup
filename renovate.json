@@ -47,14 +47,7 @@
     },
     {
       "groupName": "linters and formatters",
-      "matchPackageNames": [
-        "eslint",
-        "prettier",
-        "husky",
-        "/^eslint/",
-        "/^prettier/",
-        "/^@typescript-eslint/"
-      ]
+      "matchPackageNames": ["eslint", "prettier", "husky", "/^eslint/", "/^prettier/", "/^@typescript-eslint/"]
     },
     {
       "groupName": "TypeScript and types",

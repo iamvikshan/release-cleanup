@@ -14,7 +14,7 @@
     "f:check": "prettier --check .",
     "lint:fix": "eslint . --fix",
     "check": "eslint . && tsc --noEmit",
-    "prepare": "husky",
+    "prepare": "test -d .git && husky || true",
     "test": "jest",
     "start": "bun src/index.ts"
   },
