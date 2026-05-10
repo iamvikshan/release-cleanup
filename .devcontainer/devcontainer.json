@@ -9,7 +9,7 @@
   },
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "bun install",
+  "postCreateCommand": "chmod +x scripts/dvcntnr.sh && scripts/dvcntnr.sh",
 
   // Set `remoteUser` to `root` to connect as root.
   "remoteUser": "root"
