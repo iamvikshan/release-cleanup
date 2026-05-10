@@ -1,35 +1,38 @@
 #!/bin/bash
 # Complete setup script to configure Git and GitHub CLI for iamvikshan
 #
+# IMPORTANT: This script is GENERIC and applies to ANY repository.
+# It will auto-detect the current repo's remotes and configure them appropriately.
+# DO NOT assume it configures a single hardcoded repository.
+#
 # This script sets up:
 # 1. Git global config (user.name and user.email)
 # 2. GitHub CLI authentication as iamvikshan
 # 3. SSH signing keys for commit verification
 # 4. Updates ~/.bashrc to clear GITHUB_TOKEN and add verification function
 # 5. Ensures all commits and pushes are attributed to iamvikshan
-# 6. Configures GitLab as primary remote (origin) for Duo Agent Platform
-# 7. Adds GitHub as secondary remote (github) for mirror/sync
+# 6. Auto-detects and configures current repo's remotes (origin/primary + github/mirror)
 #
-# Run this once to set up your development environment permanently.
+# Run this once per repository to set up your development environment.
 # Safe to run multiple times (idempotent).
 #
 # Usage:
 #   ./author.sh [--repo <repository-url>] [--github-repo <url>] [--force|--yes]
 #
 # Options:
-#   --repo <url>         Override the primary (GitLab) repository URL
-#   --github-repo <url>  Override the GitHub mirror repository URL
-#   --force, --yes       Force changes without prompting (required in non-interactive mode for remote URL changes)
+#   --repo <url>         Override the primary repository URL (auto-detected if not provided)
+#   --github-repo <url>  Override the GitHub mirror repository URL (auto-detected if not provided)
+#   --force, --yes       Force changes without prompting (required in non-interactive mode)
 #
 # Environment variables:
-#   TARGET_REPO        Set this to override the default primary repository URL
-#   GITHUB_MIRROR_REPO Set this to override the default GitHub mirror URL
+#   TARGET_REPO        Override the primary repository URL
+#   GITHUB_MIRROR_REPO Override the GitHub mirror repository URL
 #
 # Examples:
-#   ./author.sh
+#   ./author.sh                    # Auto-detect current repo remotes
 #   ./author.sh --repo https://gitlab.com/myorg/myrepo.git
-#   ./author.sh --github-repo https://github.com/myorg/myrepo.git
-#   TARGET_REPO=https://gitlab.com/myorg/myrepo.git ./author.sh
+#   ./author.sh --github-repo https://github.com/myorg/release-cleanup.git
+#   TARGET_REPO=https://... ./author.sh
 
 set -euo pipefail
 
@@ -58,15 +61,14 @@ BASHRC_FILE="$HOME/.bashrc"
 MARKER_START="# iamvikshan development setup"
 MARKER_END="# End iamvikshan development setup"
 
-# Default target repository (GitLab - primary, required for Duo Agent Platform)
-# Can be overridden by TARGET_REPO env var or --repo argument
-DEFAULT_TARGET_REPO="https://gitlab.com/vikshan/gitsync"
-TARGET_REPO="${TARGET_REPO:-$DEFAULT_TARGET_REPO}"
+# Auto-detect repository URLs from current git config if available
+# These can be overridden by TARGET_REPO/GITHUB_MIRROR_REPO env vars or --repo/--github-repo args
+DETECTED_ORIGIN=$(git config --local remote.origin.url 2>/dev/null || git config --local remote.github.url 2>/dev/null || echo "")
+DETECTED_GITHUB=$(git config --local remote.github.url 2>/dev/null || git config --local remote.origin.url 2>/dev/null | sed 's|gitlab|github|g' || echo "")
 
-# GitHub mirror repository (secondary remote for sync)
-# Can be overridden by GITHUB_MIRROR_REPO env var or --github-repo argument
-DEFAULT_GITHUB_MIRROR="https://github.com/iamvikshan/gitsync"
-GITHUB_MIRROR_REPO="${GITHUB_MIRROR_REPO:-$DEFAULT_GITHUB_MIRROR}"
+# Defaults: Use detected values, fall back to empty (will be set interactively if needed)
+TARGET_REPO="${TARGET_REPO:-${DETECTED_ORIGIN:-}}"
+GITHUB_MIRROR_REPO="${GITHUB_MIRROR_REPO:-${DETECTED_GITHUB:-}}"
 
 # Flag to force remote URL changes without prompting (for non-interactive use)
 FORCE_REMOTE_UPDATE=false
@@ -105,18 +107,23 @@ while [[ $# -gt 0 ]]; do
     --help | -h)
       echo "Usage: $SCRIPT_NAME [--repo <repository-url>] [--github-repo <url>] [--force|--yes]"
       echo ""
+      echo "This script configures Git and GitHub CLI for user: $GIT_USER"
+      echo "It auto-detects remotes from the current repository."
+      echo ""
       echo "Options:"
-      echo "  --repo <url>         Override the primary (GitLab) repository URL"
-      echo "                       (default: $DEFAULT_TARGET_REPO)"
-      echo "  --github-repo <url>  Override the GitHub mirror repository URL"
-      echo "                       (default: $DEFAULT_GITHUB_MIRROR)"
+      echo "  --repo <url>         Override the detected primary repository URL"
+      echo "  --github-repo <url>  Override the detected GitHub mirror repository URL"
       echo "  --force, --yes, -f, -y"
       echo "                       Force remote URL changes without prompting"
       echo "                       (required in non-interactive mode if remote differs)"
       echo ""
       echo "Environment variables:"
-      echo "  TARGET_REPO        Set this to override the default primary repository URL"
-      echo "  GITHUB_MIRROR_REPO Set this to override the default GitHub mirror URL"
+      echo "  TARGET_REPO        Override the detected primary repository URL"
+      echo "  GITHUB_MIRROR_REPO Override the detected GitHub mirror repository URL"
+      echo ""
+      echo "IMPORTANT: This script applies to the CURRENT REPOSITORY."
+      echo "It will auto-detect 'origin' and 'github' remotes from git config."
+      echo "To use with a different repository, pass --repo and --github-repo explicitly."
       exit 0
       ;;
     *)
@@ -126,6 +133,33 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Safety check: if repos are empty or auto-detected, prompt for confirmation
+if [[ -z "$TARGET_REPO" || -z "$GITHUB_MIRROR_REPO" ]]; then
+  echo "=========================================="
+  echo "⚠️  REPOSITORY CONFIGURATION SAFETY CHECK"
+  echo "=========================================="
+  echo ""
+  
+  if [[ -z "$TARGET_REPO" ]]; then
+    echo "WARNING: No primary repository detected or specified."
+    echo "   Run from inside a git repository, or use: --repo <url>"
+    exit 1
+  fi
+  
+  if [[ -z "$GITHUB_MIRROR_REPO" ]]; then
+    echo "WARNING: No GitHub mirror repository detected or specified."
+    echo "   Use: --github-repo <url>"
+    exit 1
+  fi
+fi
+
+echo "=========================================="
+echo "Repository Configuration Summary"
+echo "=========================================="
+echo "Primary repo (origin):  $TARGET_REPO"
+echo "GitHub mirror (github): $GITHUB_MIRROR_REPO"
+echo ""
 
 # Validate TARGET_REPO format
 if [[ ! "$TARGET_REPO" =~ ^(https://|git@) ]]; then
