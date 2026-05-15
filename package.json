@@ -16,7 +16,9 @@
     "check": "eslint . && tsc --noEmit",
     "prepare": "test -d .git && husky || true",
     "test": "jest",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "bs": "mkdir -p scripts && curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh > scripts/bootstrap.sh && chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh",
+    "upd": "apt update && apt upgrade -y && bun upgrade && bun update --latest && bun f"
   },
   "keywords": [
     "github",
@@ -32,38 +34,27 @@
   "author": "vikshan",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.13.6",
-    "inquirer": "9.0.0"
+    "axios": "^1.16.1",
+    "inquirer": "13.4.3"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.0",
-    "@eslint/js": "^10.0.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/exec": "^7.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.8",
-    "@semantic-release/npm": "^13.0.0",
-    "@semantic-release/release-notes-generator": "^14.1.1",
+    "@types/inquirer": "^9.0.9",
+    "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.48.1",
-    "@typescript-eslint/parser": "^8.48.1",
+    "@types/node": "^25.8.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
     "@vercel/ncc": "^0.38.4",
     "bun-types": "^1.3.14",
-    "conventional-changelog-conventionalcommits": "^9.3.1",
-    "conventional-changelog-gitmoji": "^0.2.5",
-    "eslint": "^10.0.3",
+    "eslint": "^10.4.0",
     "husky": "^9.1.7",
     "jest": "^30.4.2",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.3",
     "rimraf": "^6.1.3",
-    "semantic-release": "^25.0.3",
-    "semantic-release-gitmoji": "^1.6.9",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.1"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3"
   },
   "eslintConfig": {
     "extends": [
