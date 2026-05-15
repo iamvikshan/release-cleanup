@@ -1,0 +1,13 @@
+{
+  "name": "release-cleanup",
+  "root": "/workspaces/release-cleanup",
+  "packageManager": "bun",
+  "language": "TypeScript",
+  "buildScript": "bun build --compile --target=<target> src/index.ts --outfile=dist/<outfile>",
+  "devBuildScript": "rimraf dist && ncc build src/index.ts -o dist --source-map",
+  "runtimeScript": "bun src/index.ts",
+  "releaseWorkflow": ".github/workflows/release.yml",
+  "existingWorkflows": [".github/workflows/sync.yml"],
+  "bunExecutableTargets": ["bun-linux-x64", "bun-darwin-x64", "bun-windows-x64"],
+  "notes": "Release workflow configured at .github/workflows/release.yml to build and publish Bun standalone executables on version tags."
+}
