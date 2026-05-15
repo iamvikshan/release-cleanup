@@ -33,10 +33,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Bun and install dependencies
-        uses: iamvikshan/.github/.github/actions/setup-bun@main
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
 
       - name: Build standalone executable
+        shell: bash
         run: |
           mkdir -p dist
           bun build --compile --target=${{ matrix.target }} src/index.ts --outfile=dist/${{ matrix.outfile }}
@@ -76,4 +82,4 @@ jobs:
           # To control authorship, provide a personal access token here; the release author will
           # be the token owner. Example: token: ${{ secrets.RELEASE_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
