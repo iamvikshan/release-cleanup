@@ -1,6 +1,6 @@
 {
   "name": "Ubuntu + Bun + Docker",
-  "image": "vikshan/ubuntu-bun:latest",
+  "image": "vikshan/ubuntu-bun:latest@sha256:5cdc81d2311e2a0cae845fe7d59200ec95eb3b4ba1f1ff566973ec26e5ddb917",
   // Configure tool-specific properties.
   "customizations": {
     "vscode": {

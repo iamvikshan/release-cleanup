@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Sync with GitLab
-        uses: iamvikshan/gitsync@v1.0.1
+        uses: iamvikshan/gitsync@d437a9e126b2e0c5cc450ef425f2d2dd4bf19a61 # v1.0.1
         with:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
