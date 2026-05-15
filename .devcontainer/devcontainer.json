@@ -1,9 +1,17 @@
 {
-  "name": "Ubuntu + Bun",
+  "name": "Ubuntu + Bun + Docker",
   "image": "vikshan/ubuntu-bun:latest",
   // Configure tool-specific properties.
   "customizations": {
     "vscode": {
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "zsh"
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
@@ -11,7 +19,7 @@
         "christian-kohler.npm-intellisense",
         "WakaTime.vscode-wakatime",
         "coderabbit.coderabbit-vscode",
-        "DeepScan.vscode-deepscan"
+        "eamodio.gitlens"
       ]
     }
   },
@@ -20,6 +28,7 @@
       "version": "latest"
     }
   },
+
   "remoteUser": "root",
-  "postCreateCommand": "apt update && apt upgrade -y && bun upgrade && ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh && mkdir -p scripts && curl -sL https://raw.githubusercontent.com/iamvikshan/atlas/main/scripts/bootstrap.sh > scripts/bootstrap.sh && chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh --default"
+  "postCreateCommand": "apt update && apt upgrade -y && bun upgrade && ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh && bun bs --default"
 }
