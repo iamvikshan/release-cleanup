@@ -1,206 +1,172 @@
 # Git Release Cleanup
 
-<div align="center">
-
-[![wakatime](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/723ec1bc-7dd6-4696-97d3-f61f1300501c.svg)](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/723ec1bc-7dd6-4696-97d3-f61f1300501c)
-
-</div>
-
-A powerful CLI tool to easily delete releases, tags, and container images across GitHub, GitLab, and
-Docker registries.
+A fast, interactive CLI tool built to selectively prune and delete releases, tags, and container
+images across GitHub, GitLab, and multiple container registries. Distributed as lightweight,
+standalone native executables powered by Bun.
 
 ## Features
 
-- **Multi-Platform Support**: GitHub, GitLab, GHCR, GitLab Container Registry, and Docker Hub
-- **Flexible Deletion**: Delete releases, tags, or container images selectively
-- **Interactive CLI**: User-friendly prompts guide you through the cleanup process
-- � **Safe by Default**: Confirmation required before any deletion
-- **Default Selections**: First option pre-selected to prevent empty submissions (NEW!)
-- **Two-Level Container Selection**: Choose images, then specific versions (NEW!)
-- **Built with TypeScript**: Reliable and type-safe
-- **Modern UI**: Clean interface with emoji indicators
+- **Multi-Platform Support**: Works simultaneously across GitHub, GitLab, GHCR, GitLab Container
+  Registry, and Docker Hub.
+- **Hierarchical Context Interception**: Automatically loads smart configuration defaults from
+  global environment states (`~/.rlscleanerrc` and `~/.atlasrc`) with an on-the-fly interactive
+  review menu.
+- **Flexible Deletion Rules**: Pick what you want to remove selectively (Releases, Tags, or
+  Container Images) via standard keyboard navigation.
+- **Unified Image Management**: Combines cross-registry container imagery under an aggregated
+  two-level selection group (Images -> specific tagged versions).
+- **Safe by Default**: Explicit multi-select confirmations required prior to executing irreversible
+  API deletions.
 
 > [!WARNING]
 >
-> Use this tool with caution. Deleting releases, tags, and container images is irreversible and can
-> have unintended consequences.
+> Use this tool with caution. Deleting releases, tags, and container images is permanent,
+> destructive, and cannot be undone.
+
+---
 
 ## Installation
 
-### 1. Clone the repository
+You can run the tool via direct pre-compiled binaries, use it as a standalone JavaScript bundle, or
+build it locally.
+
+### 1. Download Standalone Native Binaries
+
+Download the specific zero-dependency compiled binary for your environment from the latest
+[GitHub Release](https://github.com/iamvikshan/release-cleanup/releases).
+
+- Linux (`x64` / `ARM64`)
+- macOS (`Intel` / `Apple Silicon`)
+- Windows (`x64`)
+
+No JavaScript runtime (Node.js or Bun) is required to execute these native builds.
+
+### 2. Run the Universal JavaScript Bundle
+
+If you already have a JavaScript runtime installed, download the universal `index.js` file from the
+release assets and invoke it directly:
+
+```bash
+bun index.js
+# or
+bun index.js
+
+```
+
+### 3. Build From Source (Development)
 
 ```bash
 git clone https://github.com/iamvikshan/release-cleanup
 cd release-cleanup
 bun install
+bun run build:all
+
 ```
 
-### 2. As a node package
+---
+
+## Configuration Hierarchy
+
+The tool reads operational secrets and repository names sequentially based on a strict order of
+precedence (from highest to lowest):
+
+1. **`~/.rlscleanerrc`** (Global dedicated cleaner configuration)
+2. **`~/.atlasrc`** (Global dev space shared bootstrap environment cache)
+3. **`.env`** (Current local working directory environment variables)
+
+### Zero-Config Review Wizard
+
+When you start the tool, it evaluates your environment layers, aggregates the settings it discovers,
+and drops you into an inline interactive dashboard:
 
 ```bash
-bun i -d release-cleanup
+Review configuration. Select fields to edit (Space to select, Enter to confirm all):
+ ◯ GitHub Token: gith********DQvH
+ ◯ GitHub Owner: iamvikshan
+ ◯ GitHub Repo: release-cleanup
+ ◯ GitLab Token: glpa********81s8
+ ◯ GitLab Namespace: vikshan
+ ◯ GitLab Repo: release-cleanup
+
 ```
 
-> [!NOTE]
->
-> This is still a work in progress and not yet published to npm.
+- **Accept Defaults**: Simply hit `Enter` to run the tool instantly with the loaded parameters.
+- **Repository Switching**: Tap `Space` to select specific fields (like `GitHub Repo` or
+  `GitLab Repo`), overwrite them for the active repository, and the tool will selectively
+  synchronize those changes directly into your `~/.rlscleanerrc` configuration file.
+- **CI Safety**: The utility automatically ignores volatile `GITHUB_TOKEN` environment layers often
+  overridden or restricted by runner shells.
 
-## Configuration
-
-The tool features **smart credential management** that automatically creates a `.env` file for you!
-
-### First-Time Setup (Automatic)
-
-1. Run the tool: `bun start`
-2. Select what to delete and which platforms
-3. Enter credentials when prompted
-4. Tool automatically saves to `.env` file. The `.env` is automatically added to `.gitignore`.
-5. Next time, credentials are loaded automatically!
-
-### Manual Setup (Optional)
-
-Create a `.env` file manually with your credentials:
-
-```env
-# GitHub Configuration
-GH_TOKEN=your_github_token
-GH_OWNER=your_github_username
-GH_REPO=your_github_repository
-
-# GitLab Configuration
-GITLAB_TOKEN=your_gitlab_token
-GL_OWNER=your_gitlab_username
-GL_REPO=your_gitlab_repository
-
-# GitHub Container Registry (GHCR)
-GHCR_TOKEN=your_github_token # defaults to GH_TOKEN
-GHCR_OWNER=your_github_username # defaults to GH_OWNER
-GHCR_PACKAGE=your_package_name
-
-# GitLab Container Registry
-GL_PROJECT=your_gitlab_project_id
-
-# Docker Hub
-DOCKERHUB_TOKEN=your_dockerhub_token
-DOCKER_HUB_USERNAME=your_dockerhub_username
-DOCKER_HUB_REPO=your_dockerhub_repository
-```
-
-> [!TIP] The tool only asks for credentials needed by your selected platforms.
-
-## Usage
-
-if cloned,
-
-```bash
-bun start
-```
-
-if installed as a package,
-
-```bash
-bun release-cleanup
-```
+---
 
 ## Interactive Flow
 
-The tool follows a simple 3-step process:
+### Step 1: Scope Target Extraction
 
-### Step 1: What do you want to delete?
+Select exactly what types of artifacts you intend to purge from your namespaces.
 
-```
- What do you want to delete?
- ❯ Releases only
+```bash
+? What do you want to delete?
+  Releases only
   Tags only
   Containers only
-  Releases & Tags
+❯ Releases & Tags
   Everything Everywhere All at Once
-  ────────────────
-   Exit
-```
-
-### Step 2: From where?
+  ──────────────
+  Exit
 
 ```
- From where do you want to delete?
- ❯ GitHub
+
+### Step 2: Platform Filter
+
+Target the precise platform or infrastructure housing the artifacts.
+
+```bash
+? From where do you want to delete?
+❯ GitHub
   GitLab
   Everywhere
-  ────────────────
-  ← Go Back
-```
-
-If you select containers, you'll also be asked:
+  ──────────────
+  Go Back
 
 ```
- Select container registries:
- ◯ GitHub Container Registry (GHCR)
- ◯ GitLab Container Registry
- ◯ Docker Hub
- ◯ Everywhere
-```
 
-### Step 3: Which specific items?
+### Step 3: Granular Selection & Safe Deletion
 
-```
- Select GitHub releases to delete:
- ◯ v1.0.0 - First Release
- ◯ v0.9.0 - Beta Release
- ◯ v0.8.0 - Alpha Release
-```
+A list matching the chosen parameters is rendered directly to your console. Use the arrow keys and
+`Space` to pick target items, then finalize execution with a manual verification pass.
 
-### Final Confirmation
+```bash
+? Select GitHub releases to delete (space to select, enter to confirm):
+ ◯ v1.0.0 - Production Release
+ ◯ v0.9.0 - Staging Build
+
+Total releases/tags to delete: 2
+? Are you sure you want to delete the selected releases/tags? (y/N)
 
 ```
- Total items to delete: 5
- Are you sure you want to delete the selected items? (y/N)
-```
 
-## Smart Defaults
-
-- **Checkbox Pre-Checked**: First checkbox option is pre-selected to prevent empty submissions
-- **Platform-Based Prompts**: Only asks for credentials needed by selected platforms
-- **Smart Fallbacks**: GitHub credentials work for GHCR, GitLab for GitLab Registry
-- **GitHub + Containers**: Selecting GitHub with containers automatically includes GHCR
-- **Smart Filtering**: Only relevant options are shown based on your previous selections
+---
 
 ## Container Version Selection
 
-For container images, the tool uses a **unified cross-registry approach** that groups images by
-name:
+For container orchestration layers, the engine relies on an automated cross-registry framework that
+identifies identical images by name:
 
-1. **Auto-Grouping**: Same image across different registries (GHCR, GitLab, Docker Hub) are grouped
-   together
-2. **Select Groups**: Choose which image groups to work with (e.g., `gitpod-bun` appears once even
-   if it's in multiple registries)
-3. **Select Versions**: For each registry containing the image, select specific versions to delete
-4. **Confirm & Delete**: Review and confirm deletion for each group before proceeding
+1. **Auto-Grouping**: The same image pushed to multiple disparate hubs (e.g., GHCR and Docker Hub)
+   maps into a single menu element.
+2. **Registry Filtering**: Choose the grouped element, and the tool drills down to prompt you
+   separately for targeted versions on an isolated, per-registry basis.
+3. **Safe Interception**: Confirms container deletions for the current image group completely before
+   presenting sequential image rows.
 
-**Example**: If you have `gitpod-bun` in both GHCR and GitLab Registry:
+---
 
-- You'll see one group: `gitpod-bun (GHCR, GitLab) - 16 total versions`
-- Select versions from GHCR (8 versions available)
-- Select versions from GitLab (8 versions available)
-- Confirm deletion for this group
-- Continue with next group or exit
+## Related Projects
 
-This prevents accidental deletions and makes managing the same image across multiple registries
-efficient!
+This repository is maintained as an isolated tool to cleanly coordinate workspace maintenance
+alongside [Advanced Git Sync (gitsync)](https://github.com/iamvikshan/gitsync).
 
-## Development
-
-This tool was meant to be part of a larger project that helps manage releases across GitHub and
-GitLab repositories, but instead i chose to keep it independent, after deciding to create a
-different tool that could sync codebase (including releases and tags!) Behold, to me, My
-[Advanced Git Sync](https://github.com/iamvikshan/gitsync)!
-
-The code primarily relies on the official GitHub and GitLab APIs to manage releases and tags
-programmatically.
-
-Contributions are welcome! You MUST read the
+Contributions are managed through explicit repository hooks. Please check out
 [CONTRIBUTING.md](https://github.com/iamvikshan/release-cleanup?tab=contributing-ov-file) for
-guidelines on how to contribute to this project.
-
-Why would you need this? IDK but i do.
-
-![Alt](https://repobeats.axiom.co/api/embed/733b1172a0dd4ff34cdb848eff1bc320f018d8f6.svg 'Repobeats analytics image')
+operational standards.
