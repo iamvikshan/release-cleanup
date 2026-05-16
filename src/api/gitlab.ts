@@ -52,11 +52,11 @@ export async function deleteGitlabItems(
     await gitlabApi.delete(
       `/projects/${projectId}/releases/${release.tag_name}`
     )
-    console.log(`✅ Deleted GitLab release: ${release.tag_name}`)
+    console.log(` Deleted GitLab release: ${release.tag_name}`)
   }
 
   for (const tag of items.tags || []) {
     await gitlabApi.delete(`/projects/${projectId}/repository/tags/${tag.name}`)
-    console.log(`✅ Deleted GitLab tag: ${tag.name}`)
+    console.log(` Deleted GitLab tag: ${tag.name}`)
   }
 }

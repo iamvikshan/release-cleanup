@@ -24,7 +24,7 @@ import { groupImagesByName } from '../helpers'
  */
 export async function cleanup(): Promise<void> {
   try {
-    console.log('🚀 Welcome to Release Cleanup Tool!\n')
+    console.log(' Welcome to Release Cleanup Tool!\n')
 
     let whatToDelete
     let platforms
@@ -64,21 +64,21 @@ export async function cleanup(): Promise<void> {
       platforms.dockerHub
 
     if (!anyPlatformSelected) {
-      console.log('❌ No platforms selected. Exiting...')
+      console.log(' No platforms selected. Exiting...')
       return
     }
 
-    console.log('\n📋 Configuration Summary:')
+    console.log('\n Configuration Summary:')
     console.log('━'.repeat(50))
     if (whatToDelete.deleteReleases) console.log('✓ Deleting releases')
     if (whatToDelete.deleteTags) console.log('✓ Deleting tags')
     if (whatToDelete.deleteContainers) console.log('✓ Deleting containers')
-    console.log('\n🌐 From platforms:')
-    if (platforms.github) console.log('  • GitHub')
-    if (platforms.gitlab) console.log('  • GitLab')
-    if (platforms.ghcr) console.log('  • GitHub Container Registry (GHCR)')
-    if (platforms.gitlabRegistry) console.log('  • GitLab Container Registry')
-    if (platforms.dockerHub) console.log('  • Docker Hub')
+    console.log('\n From platforms:')
+    if (platforms.github) console.log(' • GitHub')
+    if (platforms.gitlab) console.log(' • GitLab')
+    if (platforms.ghcr) console.log(' • GitHub Container Registry (GHCR)')
+    if (platforms.gitlabRegistry) console.log(' • GitLab Container Registry')
+    if (platforms.dockerHub) console.log(' • Docker Hub')
     console.log('━'.repeat(50) + '\n')
 
     // Get configuration (will prompt for missing credentials and save to .env)
@@ -86,7 +86,7 @@ export async function cleanup(): Promise<void> {
     const apis = createApis(config)
 
     // Fetch items from selected platforms
-    console.log('🔍 Fetching items...\n')
+    console.log(' Fetching items...\n')
 
     const items: Items = {
       github: platforms.github
@@ -159,13 +159,13 @@ export async function cleanup(): Promise<void> {
                 {
                   type: 'confirm',
                   name: 'continueNext',
-                  message: '➡️  Continue with next image group?',
+                  message: ' Continue with next image group?',
                   default: true
                 }
               ])
 
               if (!continueNext) {
-                console.log('\n⏭️  Skipping remaining groups...')
+                console.log('\n Skipping remaining groups...')
                 break
               }
             }
@@ -182,28 +182,27 @@ export async function cleanup(): Promise<void> {
       (toDelete.gitlab?.tags.length || 0)
 
     if (totalToDelete === 0) {
-      console.log('\n✅ Cleanup completed.')
+      console.log('\n Cleanup completed.')
       return
     }
 
-    console.log(`\n⚠️  Total releases/tags to delete: ${totalToDelete}`)
+    console.log(`\n Total releases/tags to delete: ${totalToDelete}`)
 
     const { confirm } = await inquirer.prompt([
       {
         type: 'confirm',
         name: 'confirm',
-        message:
-          '🗑️  Are you sure you want to delete the selected releases/tags?',
+        message: ' Are you sure you want to delete the selected releases/tags?',
         default: false
       }
     ])
 
     if (!confirm) {
-      console.log('❌ Operation cancelled')
+      console.log(' Operation cancelled')
       return
     }
 
-    console.log('\n🔄 Starting cleanup...\n')
+    console.log('\n Starting cleanup...\n')
 
     const operations: Promise<void>[] = []
 
@@ -213,7 +212,7 @@ export async function cleanup(): Promise<void> {
     ) {
       operations.push(
         deleteGithubItems(apis.githubApi, config, toDelete.github).catch(
-          error => console.error('❌ GitHub Error:', error.message)
+          error => console.error(' GitHub Error:', error.message)
         )
       )
     }
@@ -224,16 +223,16 @@ export async function cleanup(): Promise<void> {
     ) {
       operations.push(
         deleteGitlabItems(apis.gitlabApi, config, toDelete.gitlab).catch(
-          error => console.error('❌ GitLab Error:', error.message)
+          error => console.error(' GitLab Error:', error.message)
         )
       )
     }
 
     await Promise.all(operations)
-    console.log('\n✅ Cleanup completed successfully!')
+    console.log('\n Cleanup completed successfully!')
   } catch (error) {
     console.error(
-      '\n❌ Error:',
+      '\n Error:',
       error instanceof Error ? error.message : String(error)
     )
     process.exit(1)

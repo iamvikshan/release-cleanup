@@ -8,7 +8,17 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "types": ["bun-types"],
+
+    /* Path Aliasing Configuration */
+    "paths": {
+      "@api/*": ["./src/api/*"],
+      "@cli/*": ["./src/cli/*"],
+      "@core/*": ["./src/core/*"],
+      "@helpers/*": ["./src/helpers/*"],
+      "@types-app/*": ["./src/types/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

@@ -83,7 +83,7 @@ export async function fetchDockerImages(
           })
         } catch (err) {
           console.error(
-            `⚠️  Error fetching versions for ${pkg.name}:`,
+            ` Error fetching versions for ${pkg.name}:`,
             err instanceof Error ? err.message : String(err)
           )
         }
@@ -91,7 +91,7 @@ export async function fetchDockerImages(
       results.ghcr = packages
     } catch (error) {
       console.error(
-        '⚠️  Error fetching GHCR images:',
+        ' Error fetching GHCR images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -115,7 +115,7 @@ export async function fetchDockerImages(
       }))
     } catch (error) {
       console.error(
-        '⚠️  Error fetching GitLab images:',
+        ' Error fetching GitLab images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -151,7 +151,7 @@ export async function fetchDockerImages(
       }))
     } catch (error) {
       console.error(
-        '⚠️  Error fetching Docker Hub images:',
+        ' Error fetching Docker Hub images:',
         error instanceof Error ? error.message : String(error)
       )
     }
@@ -227,7 +227,7 @@ export async function fetchDockerImageVersions(
     }
   } catch (error) {
     console.error(
-      `⚠️  Error fetching versions for ${image.name}:`,
+      ` Error fetching versions for ${image.name}:`,
       error instanceof Error ? error.message : String(error)
     )
   }
@@ -258,12 +258,10 @@ export async function deleteDockerImages(
           version.tags && version.tags.length > 0
             ? ` (${version.tags.join(', ')})`
             : ''
-        console.log(
-          `✅ Deleted GHCR version: ${version.package_name}${tagInfo}`
-        )
+        console.log(` Deleted GHCR version: ${version.package_name}${tagInfo}`)
       } catch (error) {
         console.error(
-          `❌ Error deleting GHCR version ${version.package_name}:`,
+          ` Error deleting GHCR version ${version.package_name}:`,
           error instanceof Error ? error.message : String(error)
         )
       }
@@ -287,12 +285,12 @@ export async function deleteDockerImages(
             `/projects/${projectId}/registry/repositories/${repo.id}/tags/${version.name}`
           )
           console.log(
-            `✅ Deleted GitLab Registry tag: ${version.package_name}:${version.name}`
+            ` Deleted GitLab Registry tag: ${version.package_name}:${version.name}`
           )
         }
       } catch (error) {
         console.error(
-          `❌ Error deleting GitLab tag ${version.package_name}:${version.name}:`,
+          ` Error deleting GitLab tag ${version.package_name}:${version.name}:`,
           error instanceof Error ? error.message : String(error)
         )
       }
@@ -323,18 +321,18 @@ export async function deleteDockerImages(
             `/repositories/${config.docker.dockerHubUsername}/${version.package_name}/tags/${version.name}/`
           )
           console.log(
-            `✅ Deleted Docker Hub tag: ${version.package_name}:${version.name}`
+            ` Deleted Docker Hub tag: ${version.package_name}:${version.name}`
           )
         } catch (error) {
           console.error(
-            `❌ Error deleting Docker Hub tag ${version.package_name}:${version.name}:`,
+            ` Error deleting Docker Hub tag ${version.package_name}:${version.name}:`,
             error instanceof Error ? error.message : String(error)
           )
         }
       }
     } catch (error) {
       console.error(
-        '❌ Error authenticating with Docker Hub:',
+        ' Error authenticating with Docker Hub:',
         error instanceof Error ? error.message : String(error)
       )
     }

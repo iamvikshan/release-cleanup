@@ -4,3 +4,4 @@ node_modules/
 *.sh
 *example
 dist
+.venv

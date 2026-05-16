@@ -47,11 +47,11 @@ export async function deleteGithubItems(
 
   for (const release of items.releases || []) {
     await githubApi.delete(`/repos/${owner}/${repo}/releases/${release.id}`)
-    console.log(`✅ Deleted GitHub release: ${release.tag_name}`)
+    console.log(` Deleted GitHub release: ${release.tag_name}`)
   }
 
   for (const tag of items.tags || []) {
     await githubApi.delete(`/repos/${owner}/${repo}/git/refs/tags/${tag.name}`)
-    console.log(`✅ Deleted GitHub tag: ${tag.name}`)
+    console.log(` Deleted GitHub tag: ${tag.name}`)
   }
 }

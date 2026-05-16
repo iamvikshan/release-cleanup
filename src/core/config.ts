@@ -1,6 +1,9 @@
 import inquirer from 'inquirer'
-import { Config } from '../types'
-import { saveToEnv, validateRequired } from '../helpers'
+import { homedir } from 'os'
+import { join } from 'path'
+import { Config } from '@types-app/index'
+import { saveConfig } from '@helpers/storage'
+import { validateRequired } from '@helpers/validation'
 
 export interface PlatformNeeds {
   github: boolean
@@ -11,156 +14,225 @@ export interface PlatformNeeds {
 }
 
 /**
- * Get configuration from environment or prompt user
+ * Minimal parser for .env style files utilizing Bun's file API.
  */
-export async function getConfig(platforms: PlatformNeeds): Promise<Config> {
-  const envConfig = {
-    github: {
-      token: process.env.GH_TOKEN,
-      owner: process.env.GH_OWNER || process.env.GL_OWNER,
-      repo: process.env.GH_REPO || process.env.GL_REPO
-    },
-    gitlab: {
-      token: process.env.GITLAB_TOKEN,
-      owner: process.env.GL_OWNER || process.env.GH_OWNER,
-      repo: process.env.GL_REPO || process.env.GH_REPO
-    },
-    docker: {
-      ghcrToken: process.env.GHCR_TOKEN || process.env.GH_TOKEN,
-      ghcrOwner: process.env.GHCR_OWNER || process.env.GH_OWNER,
-      ghcrPackage: process.env.GHCR_PACKAGE,
-      gitlabToken: process.env.GITLAB_TOKEN,
-      gitlabProject: process.env.GL_PROJECT,
-      dockerHubToken: process.env.DOCKERHUB_TOKEN,
-      dockerHubUsername: process.env.DOCKER_HUB_USERNAME,
-      dockerHubRepository: process.env.DOCKER_HUB_REPO
+async function readRcFile(filePath: string): Promise<Record<string, string>> {
+  const file = Bun.file(filePath)
+  if (!(await file.exists())) return {}
+
+  const content = await file.text()
+  const result: Record<string, string> = {}
+
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx === -1) continue
+
+    const key = trimmed.slice(0, eqIdx).trim()
+    let value = trimmed.slice(eqIdx + 1).trim()
+
+    if (/^['"].*['"]$/.test(value)) {
+      value = value.slice(1, -1)
     }
+
+    result[key] = value
   }
+  return result
+}
 
-  const questions = []
-  const envVars: Record<string, string> = {}
+/**
+ * Mask secret values for display
+ */
+function maskSecret(val: string): string {
+  if (!val) return ''
+  if (val.length <= 8) return '********'
+  return `${val.slice(0, 4)}********${val.slice(-4)}`
+}
 
-  // Collect missing credentials based on selected platforms
+export async function getConfig(platforms: PlatformNeeds): Promise<Config> {
+  // 1. Read files in strict order of precedence
+  const localEnv = await readRcFile(join(process.cwd(), '.env'))
+  const atlasRc = await readRcFile(join(homedir(), '.atlasrc'))
+  const rlsCleanerRc = await readRcFile(join(homedir(), '.rlscleanerrc'))
+
+  const mergedEnv = {
+    ...process.env,
+    ...localEnv,
+    ...atlasRc,
+    ...rlsCleanerRc
+  }
+  delete mergedEnv.GITHUB_TOKEN
+
+  // 2. Define field schemas based on required platforms
+  const fields = []
+
   if (platforms.github || platforms.ghcr) {
-    if (!envConfig.github.token) {
-      questions.push({
-        type: 'password',
-        name: 'githubToken',
-        message: '🔑 Enter GitHub Personal Access Token:',
-        validate: (input: string) => validateRequired(input, 'Token')
-      })
-    }
-
-    if (!envConfig.github.owner) {
-      questions.push({
-        type: 'input',
-        name: 'githubOwner',
-        message: '👤 Enter GitHub username/organization:',
-        validate: (input: string) => validateRequired(input, 'Username')
-      })
-    }
-
-    if (platforms.github && !envConfig.github.repo) {
-      questions.push({
-        type: 'input',
-        name: 'githubRepo',
-        message: '📦 Enter GitHub repository name:',
-        validate: (input: string) => validateRequired(input, 'Repository')
+    fields.push({
+      id: 'githubToken',
+      key: 'GH_TOKEN',
+      label: 'GitHub Token',
+      val: mergedEnv.GH_TOKEN || '',
+      isSecret: true,
+      msg: 'Enter GitHub PAT:'
+    })
+    fields.push({
+      id: 'githubOwner',
+      key: 'GH_OWNER',
+      label: 'GitHub Owner',
+      val: mergedEnv.GH_OWNER || mergedEnv.GL_OWNER || '',
+      msg: 'Enter GitHub username/org:'
+    })
+    if (platforms.github) {
+      fields.push({
+        id: 'githubRepo',
+        key: 'GH_REPO',
+        label: 'GitHub Repo',
+        val: mergedEnv.GH_REPO || mergedEnv.GL_REPO || '',
+        msg: 'Enter GitHub repo name:'
       })
     }
   }
 
   if (platforms.gitlab || platforms.gitlabRegistry) {
-    if (!envConfig.gitlab.token) {
-      questions.push({
-        type: 'password',
-        name: 'gitlabToken',
-        message: '🔑 Enter GitLab Personal Access Token:',
-        validate: (input: string) => validateRequired(input, 'Token')
+    fields.push({
+      id: 'gitlabToken',
+      key: 'GL_TOKEN',
+      label: 'GitLab Token',
+      val: mergedEnv.GL_TOKEN || mergedEnv.GITLAB_TOKEN || '',
+      isSecret: true,
+      msg: 'Enter GitLab PAT:'
+    })
+    fields.push({
+      id: 'gitlabOwner',
+      key: 'GL_OWNER',
+      label: 'GitLab Namespace',
+      val: mergedEnv.GL_OWNER || mergedEnv.GH_OWNER || '',
+      msg: 'Enter GitLab namespace:'
+    })
+    if (platforms.gitlab) {
+      fields.push({
+        id: 'gitlabRepo',
+        key: 'GL_REPO',
+        label: 'GitLab Repo',
+        val: mergedEnv.GL_REPO || mergedEnv.GH_REPO || '',
+        msg: 'Enter GitLab repo name:'
       })
     }
-
-    if (!envConfig.gitlab.owner) {
-      questions.push({
-        type: 'input',
-        name: 'gitlabOwner',
-        message: '👤 Enter GitLab username/organization:',
-        validate: (input: string) => validateRequired(input, 'Username')
-      })
-    }
-
-    if (platforms.gitlab && !envConfig.gitlab.repo) {
-      questions.push({
-        type: 'input',
-        name: 'gitlabRepo',
-        message: '📦 Enter GitLab repository name:',
-        validate: (input: string) => validateRequired(input, 'Repository')
-      })
-    }
-
-    if (platforms.gitlabRegistry && !envConfig.docker.gitlabProject) {
-      questions.push({
-        type: 'input',
-        name: 'gitlabProject',
-        message: '📦 Enter GitLab project ID or path (e.g., username/project):',
-        validate: (input: string) => validateRequired(input, 'Project ID')
+    if (platforms.gitlabRegistry) {
+      fields.push({
+        id: 'gitlabProject',
+        key: 'GL_PROJECT',
+        label: 'GitLab Project ID',
+        val: mergedEnv.GL_PROJECT || '',
+        msg: 'Enter GitLab project ID/path:'
       })
     }
   }
 
   if (platforms.dockerHub) {
-    if (!envConfig.docker.dockerHubToken) {
-      questions.push({
-        type: 'password',
-        name: 'dockerHubToken',
-        message: '🔑 Enter Docker Hub password or access token:',
-        validate: (input: string) => validateRequired(input, 'Token')
-      })
-    }
+    fields.push({
+      id: 'dockerHubToken',
+      key: 'DOCKERHUB_TOKEN',
+      label: 'Docker Hub Token',
+      val: mergedEnv.DOCKERHUB_TOKEN || '',
+      isSecret: true,
+      msg: 'Enter Docker Hub token:'
+    })
+    fields.push({
+      id: 'dockerHubUsername',
+      key: 'DOCKER_HUB_USERNAME',
+      label: 'Docker Hub Username',
+      val: mergedEnv.DOCKER_HUB_USERNAME || '',
+      msg: 'Enter Docker Hub username:'
+    })
+  }
 
-    if (!envConfig.docker.dockerHubUsername) {
-      questions.push({
-        type: 'input',
-        name: 'dockerHubUsername',
-        message: '👤 Enter Docker Hub username:',
-        validate: (input: string) => validateRequired(input, 'Username')
-      })
+  // 3. Separate into what we have vs what we are missing
+  const existingFields = fields.filter(f => f.val.trim() !== '')
+  const missingFields = fields.filter(f => f.val.trim() === '')
+
+  const fieldsToPrompt = missingFields.map(f => f.id)
+  let userAnswers: Record<string, string> = {}
+
+  // 4. Interactive Review Phase (Checkbox List)
+  if (existingFields.length > 0) {
+    console.log('') // Spacing for clean terminal output
+
+    const { selectedToEdit } = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        name: 'selectedToEdit',
+        message:
+          'Review configuration. Select fields to edit (Space to select, Enter to confirm all):',
+        choices: existingFields.map(f => ({
+          name: `${f.label}: ${f.isSecret ? maskSecret(f.val) : f.val}`,
+          value: f.id
+        })),
+        pageSize: 15
+      }
+    ])
+
+    if (selectedToEdit.length > 0) {
+      fieldsToPrompt.push(...selectedToEdit)
     }
   }
 
-  const answers = await inquirer.prompt(questions)
+  // 5. Prompt for Missing or Selected Fields
+  if (fieldsToPrompt.length > 0) {
+    console.log('') // Spacing
+    const questions = fields
+      .filter(f => fieldsToPrompt.includes(f.id))
+      .map(f => ({
+        type: f.isSecret ? 'password' : 'input',
+        name: f.id,
+        message: f.msg,
+        default: f.val || undefined,
+        validate: (input: string) => validateRequired(input, f.label)
+      }))
 
-  // Build the config
-  const config: Config = {
+    userAnswers = await inquirer.prompt(questions)
+  }
+
+  // 6. Finalize Values
+  const finalVals = fields.reduce(
+    (acc, f) => {
+      acc[f.id] = userAnswers[f.id] ?? f.val
+      return acc
+    },
+    {} as Record<string, string>
+  )
+
+  const finalConfig: Config = {
     github: {
-      token: envConfig.github.token || answers.githubToken || '',
-      owner: envConfig.github.owner || answers.githubOwner || '',
-      repo: envConfig.github.repo || answers.githubRepo || ''
+      token: finalVals.githubToken || '',
+      owner: finalVals.githubOwner || '',
+      repo: finalVals.githubRepo || ''
     },
     gitlab: {
-      token: envConfig.gitlab.token || answers.gitlabToken || '',
-      owner: envConfig.gitlab.owner || answers.gitlabOwner || '',
-      repo: envConfig.gitlab.repo || answers.gitlabRepo || ''
+      token: finalVals.gitlabToken || '',
+      owner: finalVals.gitlabOwner || '',
+      repo: finalVals.gitlabRepo || ''
     },
     docker: {
-      ghcrToken: envConfig.docker.ghcrToken || answers.githubToken,
-      ghcrOwner: envConfig.docker.ghcrOwner || answers.githubOwner,
-      ghcrPackage: envConfig.docker.ghcrPackage,
-      gitlabToken: envConfig.docker.gitlabToken || answers.gitlabToken,
-      gitlabProject: envConfig.docker.gitlabProject || answers.gitlabProject,
-      dockerHubToken: envConfig.docker.dockerHubToken || answers.dockerHubToken,
-      dockerHubUsername:
-        envConfig.docker.dockerHubUsername || answers.dockerHubUsername,
-      dockerHubRepository: envConfig.docker.dockerHubRepository
+      ghcrToken: finalVals.githubToken,
+      ghcrOwner: finalVals.githubOwner,
+      ghcrPackage: mergedEnv.GHCR_PACKAGE,
+      gitlabToken: finalVals.gitlabToken,
+      gitlabProject: finalVals.gitlabProject,
+      dockerHubToken: finalVals.dockerHubToken,
+      dockerHubUsername: finalVals.dockerHubUsername,
+      dockerHubRepository: mergedEnv.DOCKER_HUB_REPO
     }
   }
 
-  // Save to .env if any new credentials were entered
-  if (Object.keys(answers).length > 0) {
-    console.log('\n💾 Saving credentials to .env file...')
-    await saveToEnv(answers, platforms)
-    console.log("✅ Credentials saved! You won't need to enter them again.\n")
+  // 7. Save if any explicit edits were made
+  if (Object.keys(userAnswers).length > 0) {
+    console.log('\nSaving updated context to ~/.rlscleanerrc...')
+    await saveConfig(userAnswers, platforms)
+    console.log('Configuration updated for future runs.\n')
   }
 
-  return config
+  return finalConfig
 }

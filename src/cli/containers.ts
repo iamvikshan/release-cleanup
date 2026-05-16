@@ -15,7 +15,7 @@ export async function selectImageGroups(
   groups: ImageGroup[]
 ): Promise<ImageGroup[]> {
   if (groups.length === 0) {
-    console.log('ℹ️  No container images found')
+    console.log(' No container images found')
     return []
   }
 
@@ -42,7 +42,7 @@ export async function selectImageGroups(
       type: 'checkbox',
       name: 'selected',
       message:
-        '📦 Select image groups to clean up (space to select, enter to confirm):',
+        ' Select image groups to clean up (space to select, enter to confirm):',
       choices,
       pageSize: 15
     }
@@ -59,7 +59,7 @@ export async function selectVersionsForGroup(
   apis: APIs,
   config: Config
 ): Promise<GroupedVersionSelection> {
-  console.log(`\n🔍 Working on: ${group.baseName}`)
+  console.log(`\n Working on: ${group.baseName}`)
 
   const selection: GroupedVersionSelection = {
     baseName: group.baseName,
@@ -70,7 +70,7 @@ export async function selectVersionsForGroup(
 
   // GHCR versions
   if (group.registries.ghcr) {
-    console.log(`\n📍 Fetching GHCR versions...`)
+    console.log(`\n Fetching GHCR versions...`)
     const versions = await fetchDockerImageVersions(
       apis,
       config,
@@ -91,7 +91,7 @@ export async function selectVersionsForGroup(
         {
           type: 'checkbox',
           name: 'selectedVersions',
-          message: `🎯 [GHCR] Select versions of "${group.baseName}" to delete:`,
+          message: ` [GHCR] Select versions of "${group.baseName}" to delete:`,
           choices: versionChoices,
           pageSize: 15
         }
@@ -103,7 +103,7 @@ export async function selectVersionsForGroup(
 
   // GitLab Registry versions
   if (group.registries.gitlab) {
-    console.log(`\n📍 Fetching GitLab Registry versions...`)
+    console.log(`\n Fetching GitLab Registry versions...`)
     const versions = await fetchDockerImageVersions(
       apis,
       config,
@@ -124,7 +124,7 @@ export async function selectVersionsForGroup(
         {
           type: 'checkbox',
           name: 'selectedVersions',
-          message: `🎯 [GitLab] Select versions of "${group.baseName}" to delete:`,
+          message: ` [GitLab] Select versions of "${group.baseName}" to delete:`,
           choices: versionChoices,
           pageSize: 15
         }
@@ -136,7 +136,7 @@ export async function selectVersionsForGroup(
 
   // Docker Hub versions
   if (group.registries.dockerHub) {
-    console.log(`\n📍 Fetching Docker Hub versions...`)
+    console.log(`\n Fetching Docker Hub versions...`)
     const versions = await fetchDockerImageVersions(
       apis,
       config,
@@ -157,7 +157,7 @@ export async function selectVersionsForGroup(
         {
           type: 'checkbox',
           name: 'selectedVersions',
-          message: `🎯 [Docker Hub] Select versions of "${group.baseName}" to delete:`,
+          message: ` [Docker Hub] Select versions of "${group.baseName}" to delete:`,
           choices: versionChoices,
           pageSize: 15
         }
@@ -183,33 +183,33 @@ export async function confirmAndDeleteGroup(
 
   if (totalVersions === 0) {
     console.log(
-      `\n⏭️  No versions selected for "${selection.baseName}". Skipping...`
+      `\n No versions selected for "${selection.baseName}". Skipping...`
     )
     return
   }
 
-  console.log(`\n📊 Summary for "${selection.baseName}":`)
+  console.log(`\n Summary for "${selection.baseName}":`)
   if (selection.ghcr.length > 0) {
-    console.log(`  • GHCR: ${selection.ghcr.length} versions`)
+    console.log(` • GHCR: ${selection.ghcr.length} versions`)
   }
   if (selection.gitlab.length > 0) {
-    console.log(`  • GitLab: ${selection.gitlab.length} versions`)
+    console.log(` • GitLab: ${selection.gitlab.length} versions`)
   }
   if (selection.dockerHub.length > 0) {
-    console.log(`  • Docker Hub: ${selection.dockerHub.length} versions`)
+    console.log(` • Docker Hub: ${selection.dockerHub.length} versions`)
   }
 
   const { confirm } = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'confirm',
-      message: `🗑️  Delete ${totalVersions} total versions of "${selection.baseName}"?`,
+      message: ` Delete ${totalVersions} total versions of "${selection.baseName}"?`,
       default: false
     }
   ])
 
   if (!confirm) {
-    console.log(`❌ Skipped "${selection.baseName}"`)
+    console.log(` Skipped "${selection.baseName}"`)
     return
   }
 
@@ -220,5 +220,5 @@ export async function confirmAndDeleteGroup(
     dockerHub: selection.dockerHub
   })
 
-  console.log(`✅ Deleted versions of "${selection.baseName}"`)
+  console.log(` Deleted versions of "${selection.baseName}"`)
 }

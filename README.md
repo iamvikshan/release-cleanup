@@ -11,14 +11,14 @@ Docker registries.
 
 ## Features
 
-- 🌐 **Multi-Platform Support**: GitHub, GitLab, GHCR, GitLab Container Registry, and Docker Hub
-- 🏷️ **Flexible Deletion**: Delete releases, tags, or container images selectively
-- 🎯 **Interactive CLI**: User-friendly prompts guide you through the cleanup process
-- �🔒 **Safe by Default**: Confirmation required before any deletion
-- 🎨 **Default Selections**: First option pre-selected to prevent empty submissions (NEW!)
-- 📦 **Two-Level Container Selection**: Choose images, then specific versions (NEW!)
-- ⚡ **Built with TypeScript**: Reliable and type-safe
-- 🎨 **Modern UI**: Clean interface with emoji indicators
+- **Multi-Platform Support**: GitHub, GitLab, GHCR, GitLab Container Registry, and Docker Hub
+- **Flexible Deletion**: Delete releases, tags, or container images selectively
+- **Interactive CLI**: User-friendly prompts guide you through the cleanup process
+- � **Safe by Default**: Confirmation required before any deletion
+- **Default Selections**: First option pre-selected to prevent empty submissions (NEW!)
+- **Two-Level Container Selection**: Choose images, then specific versions (NEW!)
+- **Built with TypeScript**: Reliable and type-safe
+- **Modern UI**: Clean interface with emoji indicators
 
 > [!WARNING]
 >
@@ -109,51 +109,51 @@ The tool follows a simple 3-step process:
 ### Step 1: What do you want to delete?
 
 ```
-📦 What do you want to delete?
-  ❯ Releases only
-    Tags only
-    Containers only
-    Releases & Tags
-    Everything Everywhere All at Once 🎬
-    ────────────────
-    ❌ Exit
+ What do you want to delete?
+ ❯ Releases only
+  Tags only
+  Containers only
+  Releases & Tags
+  Everything Everywhere All at Once
+  ────────────────
+   Exit
 ```
 
 ### Step 2: From where?
 
 ```
-🌐 From where do you want to delete?
-  ❯ GitHub
-    GitLab
-    Everywhere
-    ────────────────
-    ← Go Back
+ From where do you want to delete?
+ ❯ GitHub
+  GitLab
+  Everywhere
+  ────────────────
+  ← Go Back
 ```
 
 If you select containers, you'll also be asked:
 
 ```
-📦 Select container registries:
-  ◯ GitHub Container Registry (GHCR)
-  ◯ GitLab Container Registry
-  ◯ Docker Hub
-  ◯ Everywhere
+ Select container registries:
+ ◯ GitHub Container Registry (GHCR)
+ ◯ GitLab Container Registry
+ ◯ Docker Hub
+ ◯ Everywhere
 ```
 
 ### Step 3: Which specific items?
 
 ```
-🎯 Select GitHub releases to delete:
-  ◯ v1.0.0 - First Release
-  ◯ v0.9.0 - Beta Release
-  ◯ v0.8.0 - Alpha Release
+ Select GitHub releases to delete:
+ ◯ v1.0.0 - First Release
+ ◯ v0.9.0 - Beta Release
+ ◯ v0.8.0 - Alpha Release
 ```
 
 ### Final Confirmation
 
 ```
-⚠️  Total items to delete: 5
-🗑️  Are you sure you want to delete the selected items? (y/N)
+ Total items to delete: 5
+ Are you sure you want to delete the selected items? (y/N)
 ```
 
 ## Smart Defaults
@@ -192,10 +192,14 @@ efficient!
 This tool was meant to be part of a larger project that helps manage releases across GitHub and
 GitLab repositories, but instead i chose to keep it independent, after deciding to create a
 different tool that could sync codebase (including releases and tags!) Behold, to me, My
-[Advanced Git Sync](https://github.com/OpenSaucedHub/advanced-git-sync)!
+[Advanced Git Sync](https://github.com/iamvikshan/gitsync)!
 
 The code primarily relies on the official GitHub and GitLab APIs to manage releases and tags
 programmatically.
+
+Contributions are welcome! You MUST read the
+[CONTRIBUTING.md](https://github.com/iamvikshan/release-cleanup?tab=contributing-ov-file) for
+guidelines on how to contribute to this project.
 
 Why would you need this? IDK but i do.
 

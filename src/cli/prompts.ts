@@ -16,21 +16,21 @@ export async function selectWhatToDelete(): Promise<
 > {
   const { whatToDelete } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'select',
       name: 'whatToDelete',
-      message: '📦 What do you want to delete?',
-      default: 0,
+      message: ' What do you want to delete?',
+      default: 'releases',
       choices: [
         { name: 'Releases only', value: 'releases' },
         { name: 'Tags only', value: 'tags' },
         { name: 'Containers only', value: 'containers' },
         { name: 'Releases & Tags', value: 'releases-tags' },
         {
-          name: 'Everything Everywhere All at Once 🎬',
+          name: 'Everything Everywhere All at Once ',
           value: 'everything'
         },
         new inquirer.Separator(),
-        { name: '❌ Exit', value: 'exit' }
+        { name: ' Exit', value: 'exit' }
       ]
     }
   ])
@@ -84,10 +84,10 @@ export async function selectPlatforms(options: {
   if (options.needGitPlatforms) {
     const { gitPlatforms } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'select',
         name: 'gitPlatforms',
-        message: '🌐 From where do you want to delete?',
-        default: 0,
+        message: ' From where do you want to delete?',
+        default: 'github',
         choices: [
           { name: 'GitHub', value: 'github' },
           { name: 'GitLab', value: 'gitlab' },
@@ -145,7 +145,7 @@ export async function selectPlatforms(options: {
         type: 'checkbox',
         name: 'containerRegistries',
         message:
-          '📦 Select container registries (space to select, enter to confirm):',
+          ' Select container registries (space to select, enter to confirm):',
         choices
       }
     ])

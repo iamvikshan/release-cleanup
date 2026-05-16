@@ -8,7 +8,7 @@ export async function selectItems<
   T extends GitHubRelease | GitHubTag | GitLabRelease | GitLabTag
 >(items: T[], type: 'releases' | 'tags', platform: string): Promise<T[]> {
   if (items.length === 0) {
-    console.log(`ℹ️  No ${type} found on ${platform}`)
+    console.log(` No ${type} found on ${platform}`)
     return []
   }
 
@@ -24,14 +24,14 @@ export async function selectItems<
     {
       type: 'checkbox',
       name: 'selected',
-      message: `🎯 Select ${platform} ${type} to delete (space to select, enter to confirm):`,
+      message: ` Select ${platform} ${type} to delete (space to select, enter to confirm):`,
       choices,
       pageSize: 15
     }
   ])
 
   if (selected.length === 0) {
-    console.log(`⚠️  No ${type} selected from ${platform}. Skipping...`)
+    console.log(` No ${type} selected from ${platform}. Skipping...`)
     return []
   }
 

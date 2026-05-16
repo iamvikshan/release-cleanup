@@ -4,7 +4,7 @@ This repository uses Bun and TypeScript.
 
 Conventions:
 
-- Package manager: Bun (`bun.lock` present)
+- Package manager: Bun. Node is prohibited.
 - Source: `src/`
 - Build output: `dist/`
 - CI workflows: `.github/workflows/sync.yml`, `.github/workflows/release.yml`

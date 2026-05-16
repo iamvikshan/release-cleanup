@@ -12,8 +12,10 @@ on:
     - cron: "0 */12 * * *"
   workflow_dispatch:
 
+# Cancel in-progress runs for the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sync:
