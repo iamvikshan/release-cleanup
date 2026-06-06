@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/iamvikshan/release-cleanup/compare/v1.0.0...v1.0.1) (2026-06-06)
+
+### Bug Fixes
+
+* **deps:** update dependency inquirer to v14 ([#37](https://github.com/iamvikshan/release-cleanup/issues/37)) ([cbc56da](https://github.com/iamvikshan/release-cleanup/commit/cbc56da910e70edd8645925c33d41b8e5536c15e))
+
 ## 1.0.0 (2026-05-16)
 
 ### ⚠ BREAKING CHANGES
