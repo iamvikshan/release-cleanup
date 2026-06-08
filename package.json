@@ -37,7 +37,7 @@
   "author": "vikshan",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.16.1",
+    "axios": "^1.17.0",
     "inquirer": "14.0.2"
   },
   "devDependencies": {
