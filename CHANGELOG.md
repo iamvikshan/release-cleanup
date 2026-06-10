@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/iamvikshan/release-cleanup/compare/v1.0.2...v1.0.3) (2026-06-10)
+
+### Bug Fixes
+
+* **deps:** update dependency axios to ^1.17.0 ([#42](https://github.com/iamvikshan/release-cleanup/issues/42)) ([73ed028](https://github.com/iamvikshan/release-cleanup/commit/73ed0284a993a23881ac43a0701a5374abf20b74))
+
 ## [1.0.2](https://github.com/iamvikshan/release-cleanup/compare/v1.0.1...v1.0.2) (2026-06-08)
 
 ### Bug Fixes

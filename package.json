@@ -1,7 +1,7 @@
 {
   "name": "git-release-cleanup",
   "description": "Automatically delete releases, tags, and Docker images across GitHub, GitLab, and container registries",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
