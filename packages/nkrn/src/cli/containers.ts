@@ -9,6 +9,20 @@ import {
 import { fetchDockerImageVersions, deleteDockerImages } from "../api"
 
 /**
+ * Format version display name with tag/digest and localized date
+ */
+function formatVersionChoice(version: DockerImageVersion): string {
+  const identifier =
+    version.tags && version.tags.length > 0
+      ? version.tags.join(", ")
+      : version.digest?.substring(0, 12) || version.id
+  const date = version.created_at
+    ? new Date(version.created_at).toLocaleDateString()
+    : "unknown date"
+  return `${identifier} (${date})`
+}
+
+/**
  * Select image groups to work with
  */
 export async function selectImageGroups(
@@ -80,10 +94,7 @@ export async function selectVersionsForGroup(
 
     if (versions.length > 0) {
       const versionChoices = versions.map((version: DockerImageVersion) => ({
-        name:
-          version.tags && version.tags.length > 0
-            ? `${version.tags.join(", ")} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`
-            : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`,
+        name: formatVersionChoice(version),
         value: version,
       }))
 
@@ -113,10 +124,7 @@ export async function selectVersionsForGroup(
 
     if (versions.length > 0) {
       const versionChoices = versions.map((version: DockerImageVersion) => ({
-        name:
-          version.tags && version.tags.length > 0
-            ? `${version.tags.join(", ")} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`
-            : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`,
+        name: formatVersionChoice(version),
         value: version,
       }))
 
@@ -146,10 +154,7 @@ export async function selectVersionsForGroup(
 
     if (versions.length > 0) {
       const versionChoices = versions.map((version: DockerImageVersion) => ({
-        name:
-          version.tags && version.tags.length > 0
-            ? `${version.tags.join(", ")} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`
-            : `${version.digest?.substring(0, 12) || version.id} (${version.created_at ? new Date(version.created_at).toLocaleDateString() : "unknown date"})`,
+        name: formatVersionChoice(version),
         value: version,
       }))
 

@@ -8,10 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["bun-types"],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "types": ["bun-types"]
   },
   "exclude": ["node_modules", "dist"]
 }

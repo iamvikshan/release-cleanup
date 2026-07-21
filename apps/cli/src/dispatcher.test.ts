@@ -5,7 +5,7 @@ const CLI_PATH = join(import.meta.dir, "index.ts")
 
 describe("dmrzl CLI dispatcher", () => {
   test("shows help when no args", async () => {
-    const proc = Bun.spawnSync(["bun", CLI_PATH, "--help"])
+    const proc = Bun.spawnSync(["bun", CLI_PATH])
     const output = proc.stdout.toString()
     expect(output).toContain("dmrzl")
     expect(output).toContain("nkrn")

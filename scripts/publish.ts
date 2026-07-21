@@ -73,7 +73,7 @@ async function prompt(message: string, fallback?: string): Promise<string> {
   const buf = Buffer.alloc(1024)
   const n = await new Promise<number>(resolve => {
     process.stdin.once("data", data => {
-      data.copy(buf)
+      Buffer.from(data).copy(buf)
       resolve(data.length)
     })
   })
@@ -86,7 +86,7 @@ async function confirm(message: string): Promise<boolean> {
   const buf = Buffer.alloc(10)
   const n = await new Promise<number>(resolve => {
     process.stdin.once("data", data => {
-      data.copy(buf)
+      Buffer.from(data).copy(buf)
       resolve(data.length)
     })
   })
@@ -96,7 +96,7 @@ async function confirm(message: string): Promise<boolean> {
 async function main() {
   const args = process.argv.slice(2)
   const pkgIdx = args.indexOf("--package")
-  const targetPkg = pkgIdx !== -1 ? args[pkgIdx + 1] : "nkrn"
+  const targetPkg = pkgIdx !== -1 ? args[pkgIdx + 1] ?? "nkrn" : "nkrn"
 
   const pkg = PACKAGES[targetPkg]
   if (!pkg)
@@ -114,6 +114,7 @@ async function main() {
   if (status) err("Working directory not clean. Commit or stash changes first.")
 
   const branch = run(["git", "branch", "--show-current"])
+  if (!branch) err("Could not determine current branch")
   log(`  Branch: ${branch}`)
 
   // Get latest tag for this package
@@ -140,6 +141,7 @@ async function main() {
   if (!tag) err("Tag is required")
 
   const name = await prompt("Release name", tag)
+  if (!name) err("Release name is required")
   const notes = await prompt("Release notes (optional)", "")
 
   log(`\n  Tag:     ${tag}`)
@@ -169,7 +171,7 @@ async function main() {
       const zipName = art.path
         .replace(".exe", ".zip")
         .replace("dist/", "dist/archives/")
-      Bun.spawnSync(["zip", "-q", zipName, art.path])
+      Bun.spawnSync(["zip", "-q", "-j", zipName, art.path])
     } else if (!art.path.endsWith(".js")) {
       const tarName = art.path.replace("dist/", "dist/archives/") + ".tar.gz"
       Bun.spawnSync([
@@ -192,7 +194,8 @@ async function main() {
 
   // Create GitHub release
   log("  Creating GitHub release...")
-  const ghArgs = ["release", "create", tag, "--title", name, "--target", branch]
+  const ghArgs: string[] = ["release", "create", tag, "--title", name, "--target"]
+  ghArgs.push(branch)
   if (notes) {
     ghArgs.push("--notes", notes)
   } else {
@@ -225,7 +228,7 @@ async function main() {
   await Bun.write(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + "\n")
   log(`  ✓ package.json version → ${version}`)
 
-  log(`\n  ✓ Release ${tag} complete! (^_^)\n`)
+  log(`\n  ✓ Release ${tag} complete!\n`)
 }
 
 main().catch(e => {

@@ -2,10 +2,19 @@ import inquirer from "inquirer"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { Config, type PlatformNeeds } from "../types"
-import { saveConfig } from "./saver"
+import { saveConfig, DEFAULT_RC_PATH } from "./saver"
 import { validateRequired } from "../validation"
 
 export type { PlatformNeeds }
+
+type ConfigField = {
+  id: string
+  key: string
+  label: string
+  val: string
+  isSecret?: boolean
+  msg: string
+}
 
 export async function readRcFile(
   filePath: string,
@@ -44,7 +53,7 @@ export function maskSecret(val: string): string {
 export async function getConfig(platforms: PlatformNeeds): Promise<Config> {
   const localEnv = await readRcFile(join(process.cwd(), ".env"))
   const atlasRc = await readRcFile(join(homedir(), ".atlasrc"))
-  const rlsCleanerRc = await readRcFile(join(homedir(), ".rlscleanerrc"))
+  const rlsCleanerRc = await readRcFile(DEFAULT_RC_PATH)
 
   const mergedEnv = {
     ...process.env,
@@ -54,7 +63,7 @@ export async function getConfig(platforms: PlatformNeeds): Promise<Config> {
   }
   delete mergedEnv.GITHUB_TOKEN
 
-  const fields = []
+  const fields: ConfigField[] = []
 
   if (platforms.github || platforms.ghcr) {
     fields.push({

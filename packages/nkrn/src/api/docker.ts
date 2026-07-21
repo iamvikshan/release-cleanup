@@ -85,6 +85,7 @@ export async function fetchDockerImages(
           console.error(
             ` Error fetching versions for ${pkg.name}:`,
             err instanceof Error ? err.message : String(err),
+            "- Check network connectivity and GitHub API permissions.",
           )
         }
       }
@@ -93,6 +94,7 @@ export async function fetchDockerImages(
       console.error(
         " Error fetching GHCR images:",
         error instanceof Error ? error.message : String(error),
+        "- Verify GitHub token has read:packages permission and owner name is correct.",
       )
     }
   }
@@ -117,6 +119,7 @@ export async function fetchDockerImages(
       console.error(
         " Error fetching GitLab images:",
         error instanceof Error ? error.message : String(error),
+        "- Verify GitLab token has api permission and project ID is correct.",
       )
     }
   }
@@ -153,6 +156,7 @@ export async function fetchDockerImages(
       console.error(
         " Error fetching Docker Hub images:",
         error instanceof Error ? error.message : String(error),
+        "- Check Docker Hub credentials and ensure the token has repository read permissions.",
       )
     }
   }
@@ -203,6 +207,7 @@ export async function fetchDockerImageVersions(
         created_at: tag.created_at,
         size: tag.total_size,
         package_name: image.name,
+        repository_id: image.id,
       }))
     }
 
@@ -229,6 +234,7 @@ export async function fetchDockerImageVersions(
     console.error(
       ` Error fetching versions for ${image.name}:`,
       error instanceof Error ? error.message : String(error),
+      "- Verify API credentials and network connectivity.",
     )
   }
 
@@ -263,6 +269,7 @@ export async function deleteDockerImages(
         console.error(
           ` Error deleting GHCR version ${version.package_name}:`,
           error instanceof Error ? error.message : String(error),
+          "- Ensure GitHub token has delete:packages permission.",
         )
       }
     }
@@ -273,25 +280,17 @@ export async function deleteDockerImages(
     for (const version of items.gitlab) {
       try {
         const projectId = encodeURIComponent(config.docker.gitlabProject)
-        const reposResponse = await apis.gitlabRegistryApi.get(
-          `/projects/${projectId}/registry/repositories`,
+        await apis.gitlabRegistryApi.delete(
+          `/projects/${projectId}/registry/repositories/${version.repository_id}/tags/${version.name}`,
         )
-        const repo = reposResponse.data.find(
-          (r: any) => (r.path || r.name) === version.package_name,
+        console.log(
+          ` Deleted GitLab Registry tag: ${version.package_name}:${version.name}`,
         )
-
-        if (repo) {
-          await apis.gitlabRegistryApi.delete(
-            `/projects/${projectId}/registry/repositories/${repo.id}/tags/${version.name}`,
-          )
-          console.log(
-            ` Deleted GitLab Registry tag: ${version.package_name}:${version.name}`,
-          )
-        }
       } catch (error) {
         console.error(
           ` Error deleting GitLab tag ${version.package_name}:${version.name}:`,
           error instanceof Error ? error.message : String(error),
+          "- Verify GitLab token has api permission and repository access.",
         )
       }
     }
@@ -327,6 +326,7 @@ export async function deleteDockerImages(
           console.error(
             ` Error deleting Docker Hub tag ${version.package_name}:${version.name}:`,
             error instanceof Error ? error.message : String(error),
+            "- Confirm Docker Hub token has write permissions for the repository.",
           )
         }
       }
@@ -334,6 +334,7 @@ export async function deleteDockerImages(
       console.error(
         " Error authenticating with Docker Hub:",
         error instanceof Error ? error.message : String(error),
+        "- Verify Docker Hub username and token are correct.",
       )
     }
   }

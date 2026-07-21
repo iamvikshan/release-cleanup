@@ -2,11 +2,13 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import type { PlatformNeeds } from "../types"
 
+export const DEFAULT_RC_PATH = join(homedir(), ".rlscleanerrc")
+
 export async function saveConfig(
   answers: Record<string, string>,
   platforms: PlatformNeeds,
+  rcPath: string = DEFAULT_RC_PATH,
 ): Promise<void> {
-  const rcPath = join(homedir(), ".rlscleanerrc")
   const file = Bun.file(rcPath)
 
   let content = ""
@@ -25,7 +27,7 @@ export async function saveConfig(
       const regex = new RegExp(`^${key}=.*$`, "gm")
 
       if (regex.test(content)) {
-        content = content.replace(regex, newLine)
+        content = content.replace(regex, () => newLine)
       } else if (!newVars.includes(newLine)) {
         newVars.push(newLine)
       }

@@ -11,7 +11,7 @@ USAGE
   dmrzl <tool> [args...]
 
 TOOLS
-  nkrn    Release cleaner. Sweep, burn, decay across GitHub, GitLab, registries.
+  nkrn    Release cleaner for GitHub, GitLab, and container registries.
   whspr   R2 backup. (coming soon)
   rdnt    Git sync. (coming soon)
 

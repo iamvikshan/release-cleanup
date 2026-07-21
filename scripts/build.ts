@@ -8,13 +8,13 @@ type BuildTarget = {
   name: string
 }
 
-type PackageConfig = {
+type BuildPackageConfig = {
   name: string
   entry: string
   binaries: BuildTarget[]
 }
 
-const PACKAGES: Record<string, PackageConfig> = {
+const BUILD_PACKAGES: Record<string, BuildPackageConfig> = {
   nkrn: {
     name: "nkrn",
     entry: "packages/nkrn/src/index.ts",
@@ -59,7 +59,7 @@ function buildBinary(entry: string, target: string, outfile: string): boolean {
   return true
 }
 
-function buildPackage(pkg: PackageConfig): boolean {
+function buildPackage(pkg: BuildPackageConfig): boolean {
   console.log(`\nBuilding @dmrzl/${pkg.name}...`)
 
   // Ensure dist/ exists
@@ -81,18 +81,18 @@ function buildPackage(pkg: PackageConfig): boolean {
   return ok
 }
 
-function main() {
+function buildMain() {
   const args = process.argv.slice(2)
   const pkgIdx = args.indexOf("--package")
   const targetPkg = pkgIdx !== -1 ? args[pkgIdx + 1] : null
 
   const packages = targetPkg
-    ? [PACKAGES[targetPkg]].filter(Boolean)
-    : Object.values(PACKAGES)
+    ? [BUILD_PACKAGES[targetPkg]].filter(Boolean)
+    : Object.values(BUILD_PACKAGES)
 
   if (packages.length === 0) {
     console.error(`Unknown package: ${targetPkg}`)
-    console.error(`Available: ${Object.keys(PACKAGES).join(", ")}`)
+    console.error(`Available: ${Object.keys(BUILD_PACKAGES).join(", ")}`)
     process.exit(1)
   }
 
@@ -109,4 +109,4 @@ function main() {
   process.exit(allOk ? 0 : 1)
 }
 
-main()
+buildMain()
